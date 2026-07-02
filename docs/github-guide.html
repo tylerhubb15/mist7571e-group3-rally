@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GitHub Guide — Rally Team 3</title>
+  <style>
+    :root {
+      --ink: #1a1a2e;
+      --clay: #e8603c;
+      --optic: #b5d99c;
+      --paper: #f5f0e8;
+      --paper2: #ede8df;
+      --muted: #6b6560;
+      --white: #ffffff;
+      --code-bg: #0d1117;
+      --code-text: #e6edf3;
+      --green: #3fb950;
+      --blue: #58a6ff;
+      --yellow: #d29922;
+      --red: #f85149;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      line-height: 1.7;
+    }
+
+    /* ── HEADER ── */
+    .hero {
+      background: var(--ink);
+      color: var(--paper);
+      padding: 56px 24px 48px;
+      text-align: center;
+      border-bottom: 4px solid var(--clay);
+    }
+    .hero-badge {
+      display: inline-block;
+      background: var(--clay);
+      color: white;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 99px;
+      margin-bottom: 16px;
+    }
+    .hero h1 {
+      font-size: clamp(28px, 5vw, 48px);
+      font-weight: 900;
+      letter-spacing: -.02em;
+      margin-bottom: 12px;
+    }
+    .hero h1 span { color: var(--optic); }
+    .hero p {
+      font-size: 18px;
+      opacity: .75;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    /* ── LAYOUT ── */
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    /* ── SECTION HEADERS ── */
+    .section {
+      margin-top: 60px;
+    }
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .section-num {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--clay);
+      color: white;
+      font-weight: 900;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .section h2 {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -.01em;
+    }
+    .section h3 {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 28px 0 10px;
+      color: var(--ink);
+    }
+    .section p {
+      margin-bottom: 14px;
+      font-size: 16px;
+    }
+
+    /* ── METAPHOR BOXES ── */
+    .metaphor {
+      background: var(--ink);
+      color: var(--paper);
+      border-left: 4px solid var(--optic);
+      border-radius: 0 10px 10px 0;
+      padding: 18px 22px;
+      margin: 20px 0;
+      font-size: 15px;
+    }
+    .metaphor strong {
+      color: var(--optic);
+      display: block;
+      font-size: 12px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    /* ── CALLOUT BOXES ── */
+    .callout {
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin: 18px 0;
+      font-size: 15px;
+    }
+    .callout.tip   { background: #d3f4e0; border-left: 4px solid #2da44e; }
+    .callout.warn  { background: #fff4d0; border-left: 4px solid var(--yellow); }
+    .callout.danger{ background: #ffe8e8; border-left: 4px solid var(--red); }
+    .callout.info  { background: #ddeeff; border-left: 4px solid var(--blue); }
+    .callout .label {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      display: block;
+    }
+    .callout.tip   .label { color: #2da44e; }
+    .callout.warn  .label { color: #9a6700; }
+    .callout.danger .label { color: #cf2222; }
+    .callout.info  .label { color: #0969da; }
+
+    /* ── CODE BLOCKS ── */
+    pre {
+      background: var(--code-bg);
+      color: var(--code-text);
+      border-radius: 10px;
+      padding: 18px 22px;
+      overflow-x: auto;
+      font-size: 14px;
+      line-height: 1.6;
+      margin: 14px 0;
+    }
+    code {
+      font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
+    }
+    pre code { color: var(--code-text); }
+    .cmd   { color: #58a6ff; }
+    .arg   { color: #b5d99c; }
+    .cmt   { color: #8b949e; font-style: italic; }
+    .out   { color: #8b949e; }
+    .hi    { color: #e8603c; font-weight: 700; }
+
+    /* ── STEP LISTS ── */
+    .steps { list-style: none; margin: 16px 0; }
+    .steps li {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      margin-bottom: 14px;
+      font-size: 15px;
+    }
+    .step-n {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--clay);
+      color: white;
+      font-size: 12px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* ── CARD GRID ── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin: 20px 0;
+    }
+    .card {
+      background: white;
+      border: 2px solid var(--ink);
+      border-radius: 10px;
+      padding: 18px;
+      box-shadow: 3px 4px 0 var(--ink);
+    }
+    .card .card-icon { font-size: 26px; margin-bottom: 8px; }
+    .card .card-title { font-weight: 800; font-size: 15px; margin-bottom: 6px; }
+    .card .card-body { font-size: 13px; color: var(--muted); }
+
+    /* ── FLOW DIAGRAM ── */
+    .flow {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin: 24px 0;
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+    .flow-node {
+      background: white;
+      border: 2px solid var(--ink);
+      border-radius: 8px;
+      padding: 10px 16px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+      box-shadow: 2px 3px 0 var(--ink);
+      flex-shrink: 0;
+    }
+    .flow-node.green { background: var(--optic); }
+    .flow-node.clay  { background: var(--clay); color: white; }
+    .flow-node.ink   { background: var(--ink); color: white; }
+    .flow-arrow {
+      font-size: 20px;
+      color: var(--muted);
+      flex-shrink: 0;
+      padding: 0 6px;
+    }
+
+    /* ── BRANCH DIAGRAM ── */
+    .branch-diagram {
+      background: var(--code-bg);
+      border-radius: 10px;
+      padding: 24px;
+      margin: 20px 0;
+      font-family: "Cascadia Code", "Fira Code", monospace;
+      font-size: 13px;
+      overflow-x: auto;
+    }
+    .bd-main   { color: #58a6ff; }
+    .bd-branch { color: #b5d99c; }
+    .bd-commit { color: #d29922; }
+    .bd-merge  { color: #e8603c; }
+    .bd-label  { color: #8b949e; font-style: italic; }
+
+    /* ── VSCODE SECTION ── */
+    .vsc-panel {
+      background: #1e1e1e;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 2px solid #333;
+      margin: 18px 0;
+    }
+    .vsc-titlebar {
+      background: #323233;
+      padding: 8px 16px;
+      font-size: 12px;
+      color: #ccc;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .vsc-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .vsc-body { padding: 18px 20px; color: #d4d4d4; font-size: 13px; font-family: "Cascadia Code", monospace; line-height: 1.9; }
+    .vsc-green  { color: #4ec9b0; }
+    .vsc-yellow { color: #dcdcaa; }
+    .vsc-blue   { color: #9cdcfe; }
+    .vsc-orange { color: #ce9178; }
+    .vsc-grey   { color: #6a9955; }
+
+    /* ── TABLE ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 18px 0;
+      font-size: 14px;
+    }
+    th {
+      background: var(--ink);
+      color: var(--paper);
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 700;
+    }
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--paper2);
+    }
+    tr:nth-child(even) td { background: var(--paper2); }
+    td code {
+      background: #e8e2d8;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    /* ── TOC ── */
+    .toc {
+      background: white;
+      border: 2px solid var(--ink);
+      border-radius: 10px;
+      padding: 24px 28px;
+      margin: 32px 0 0;
+      box-shadow: 4px 5px 0 var(--ink);
+    }
+    .toc h3 { font-size: 14px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 14px; color: var(--clay); }
+    .toc ol { padding-left: 20px; }
+    .toc li { margin-bottom: 6px; font-size: 15px; }
+    .toc a { color: var(--ink); font-weight: 600; text-decoration: none; }
+    .toc a:hover { color: var(--clay); text-decoration: underline; }
+
+    /* ── DIVIDER ── */
+    hr { border: none; border-top: 2px dashed var(--paper2); margin: 50px 0; }
+
+    /* ── QUICK REF ── */
+    .qr-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin: 20px 0;
+    }
+    .qr-card {
+      background: var(--code-bg);
+      border-radius: 10px;
+      padding: 16px 18px;
+    }
+    .qr-card h4 { color: var(--optic); font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px; }
+    .qr-card pre { background: transparent; padding: 0; margin: 0; font-size: 13px; }
+
+    @media (max-width: 600px) {
+      .flow { flex-direction: column; align-items: flex-start; }
+      .flow-arrow { transform: rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ HERO ═══════════════════════════════ -->
+<div class="hero">
+  <div class="hero-badge">🎾 Rally — Team 3 · MIST 7571E</div>
+  <h1>GitHub for <span>Complete Beginners</span></h1>
+  <p>Everything you need to collaborate on the Rally project — no experience required.</p>
+</div>
+
+<div class="container">
+
+  <!-- TOC -->
+  <div class="toc">
+    <h3>📋 What's in this guide</h3>
+    <ol>
+      <li><a href="#what-is-github">What is GitHub? (The Big Picture)</a></li>
+      <li><a href="#key-concepts">Key Concepts — the vocabulary</a></li>
+      <li><a href="#our-repo">Our Repo — how Rally is wired up</a></li>
+      <li><a href="#getting-started">Getting Started — clone &amp; set up</a></li>
+      <li><a href="#daily-workflow">Daily Workflow — how to work every day</a></li>
+      <li><a href="#pull-requests">Pull Requests — merging your work in</a></li>
+      <li><a href="#vscode">Using VS Code — no terminal needed</a></li>
+      <li><a href="#rules">Team Rules &amp; Common Mistakes</a></li>
+      <li><a href="#cheatsheet">Quick Reference Cheat Sheet</a></li>
+    </ol>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div class="section" id="what-is-github">
+    <div class="section-label">
+      <div class="section-num">1</div>
+      <h2>What is GitHub?</h2>
+    </div>
+
+    <div class="metaphor">
+      <strong>🏠 The Metaphor — Google Docs for Code</strong>
+      Imagine six people writing a group essay in Google Docs. Everyone can see the latest version, work on their own section, and save a history of every change ever made. GitHub is exactly that — but for code. Instead of "the document," you have "the repository (repo)." Instead of typing in Google Docs, you write code in VS Code and then "upload" your changes to GitHub.
+    </div>
+
+    <p>GitHub does three things for us:</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-icon">📦</div>
+        <div class="card-title">Stores the Code</div>
+        <div class="card-body">One central place online where the entire Rally project lives. Anyone on the team can access it.</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">🕐</div>
+        <div class="card-title">Tracks History</div>
+        <div class="card-body">Every change ever saved is recorded with who made it and when. You can always roll back if something breaks.</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔀</div>
+        <div class="card-title">Manages Teamwork</div>
+        <div class="card-body">Six people can work simultaneously without overwriting each other's work — using branches.</div>
+      </div>
+    </div>
+
+    <p><strong>Git vs. GitHub</strong> — these are two different things that work together:</p>
+    <ul style="margin: 10px 0 14px 22px; font-size: 15px;">
+      <li><strong>Git</strong> — a program installed on your computer that tracks changes to files.</li>
+      <li><strong>GitHub</strong> — a website that hosts your Git repository online so the whole team can access it.</li>
+    </ul>
+    <div class="metaphor">
+      <strong>🎾 Tennis Metaphor</strong>
+      Git is your personal scorebook — you write down every point you win on your court. GitHub is the tournament leaderboard — you post your scores there so everyone can see the official standings.
+    </div>
+  </div>
+
+  <hr />
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div class="section" id="key-concepts">
+    <div class="section-label">
+      <div class="section-num">2</div>
+      <h2>Key Concepts — the vocabulary</h2>
+    </div>
+
+    <p>These 7 words are all you need to know. Everything else is just combinations of them.</p>
+
+    <table>
+      <thead>
+        <tr><th>Term</th><th>Simple Definition</th><th>Tennis Metaphor</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Repository (Repo)</strong></td>
+          <td>The folder that holds the entire project — code, history, everything.</td>
+          <td>The tennis club — the whole place.</td>
+        </tr>
+        <tr>
+          <td><strong>Clone</strong></td>
+          <td>Download a full copy of the repo from GitHub onto your computer. You only do this once.</td>
+          <td>Getting your membership card and a copy of the rulebook.</td>
+        </tr>
+        <tr>
+          <td><strong>Branch</strong></td>
+          <td>Your own private workspace inside the repo. You can edit things here without affecting anyone else.</td>
+          <td>Your assigned court. You play your match there; other players are on other courts.</td>
+        </tr>
+        <tr>
+          <td><strong>Commit</strong></td>
+          <td>Save a snapshot of your changes with a message describing what you did. Like pressing "Save" but with a description.</td>
+          <td>Writing down the score at the end of a game: "Won set 1, 6-3."</td>
+        </tr>
+        <tr>
+          <td><strong>Push</strong></td>
+          <td>Upload your local commits from your computer to GitHub so teammates can see them.</td>
+          <td>Posting your match results to the club leaderboard.</td>
+        </tr>
+        <tr>
+          <td><strong>Pull</strong></td>
+          <td>Download changes that teammates have pushed to GitHub onto your computer.</td>
+          <td>Checking the leaderboard to see what changed since you last looked.</td>
+        </tr>
+        <tr>
+          <td><strong>Pull Request (PR)</strong></td>
+          <td>A formal request to merge your branch's work into the main codebase. Someone reviews it first.</td>
+          <td>Submitting your match scores to the tournament director for official approval.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>How they connect — the full picture</h3>
+
+    <div class="flow">
+      <div class="flow-node ink">GitHub<br/><small style="font-weight:400;font-size:11px;">online repo</small></div>
+      <div class="flow-arrow">⟵ clone (once)</div>
+      <div class="flow-node">Your Computer<br/><small style="font-weight:400;font-size:11px;">local copy</small></div>
+      <div class="flow-arrow">→ push →</div>
+      <div class="flow-node ink">GitHub</div>
+    </div>
+    <div class="flow" style="margin-top: 8px;">
+      <div class="flow-node ink">GitHub</div>
+      <div class="flow-arrow">← pull ←</div>
+      <div class="flow-node">Your Computer</div>
+    </div>
+
+    <h3>What is a Branch, really?</h3>
+
+    <div class="metaphor">
+      <strong>🌳 Metaphor — The Tree</strong>
+      Imagine the project is a tree. The trunk is <code style="color:var(--optic)">main</code> — the official, working version of the app. Each team member grows their own branch off the trunk. You can add leaves (code) to your branch without touching the trunk. When your branch is ready, you merge it back into the trunk. The trunk stays clean and working at all times.
+    </div>
+
+    <div class="branch-diagram">
+<span class="bd-main">main</span>  ●────────────────────────────────────────●  <span class="bd-label">(the trunk — always working)</span>
+              <span class="bd-commit">│</span>                              <span class="bd-merge">↑ merge PR</span>
+              <span class="bd-commit">│</span>                              <span class="bd-merge">│</span>
+<span class="bd-branch">role2</span> ────────●──●──●──●──●──●──●──●──●──●  <span class="bd-label">(your branch — AI integration)</span>
+
+<span class="bd-branch">role4</span> ─────────────●──●──●──────────────────  <span class="bd-label">(profile developer's branch)</span>
+
+<span class="bd-label">        Each person works on their own branch simultaneously. No conflicts.</span>
+    </div>
+  </div>
+
+  <hr />
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div class="section" id="our-repo">
+    <div class="section-label">
+      <div class="section-num">3</div>
+      <h2>Our Repo — How Rally is Wired Up</h2>
+    </div>
+
+    <p><strong>Repo URL:</strong> <a href="https://github.com/tylerhubb15/mist7571e-group3-rally" target="_blank">https://github.com/tylerhubb15/mist7571e-group3-rally</a></p>
+
+    <table>
+      <thead>
+        <tr><th>Branch Name</th><th>Who Works Here</th><th>What They Build</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>main</code></td><td>Everyone (via PR only)</td><td>The live, working app. Never push here directly.</td></tr>
+        <tr><td><code>feature/role1-matching-discover</code></td><td>Role 1 — Tech Lead</td><td>Matching engine, Discover tab</td></tr>
+        <tr><td><code>feature/role2-ai-integration</code></td><td>Role 2 — AI Lead (Tyler)</td><td>OpenAI API, server-side proxy</td></tr>
+        <tr><td><code>feature/role3-sessions-view</code></td><td>Role 3 — Sessions</td><td>Sessions tab, AI brief display</td></tr>
+        <tr><td><code>feature/role4-profile</code></td><td>Role 4 — Profile</td><td>Profile form, validation, localStorage</td></tr>
+        <tr><td><code>feature/role5-qa-code-quality</code></td><td>Role 5 — QA</td><td>Code reviews, standards enforcement</td></tr>
+        <tr><td><code>feature/role6-deployment-docs</code></td><td>Role 6 — Deployment</td><td>Netlify setup, README, coordination</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout warn">
+      <span class="label">⚠️ Golden Rule</span>
+      <strong>Never push directly to <code>main</code>.</strong> Always work on your feature branch, then open a Pull Request to merge into main. This ensures someone reviews your work first.
+    </div>
+
+    <h3>The folder structure</h3>
+    <pre><code><span class="cmt"># What you'll see after cloning:</span>
+mist7571e-group3-rally/
+  ├── <span class="arg">src/</span>                 <span class="cmt"># All React source code lives here</span>
+  │   ├── <span class="arg">components/</span>      <span class="cmt"># One file per UI component</span>
+  │   ├── <span class="arg">lib/</span>             <span class="cmt"># matching.js, services.js</span>
+  │   ├── <span class="arg">data/</span>            <span class="cmt"># mockData.js — fake data for testing</span>
+  │   ├── <span class="arg">hooks/</span>           <span class="cmt"># React hooks for live Supabase data</span>
+  │   ├── App.jsx             <span class="cmt"># Main app shell</span>
+  │   └── styles.css          <span class="cmt"># All global styles</span>
+  ├── <span class="arg">supabase/</span>            <span class="cmt"># Database schema (Phase 2)</span>
+  ├── <span class="arg">docs/</span>                <span class="cmt"># This guide lives here</span>
+  ├── .env.example            <span class="cmt"># Copy this to .env — never commit .env!</span>
+  ├── .gitignore              <span class="cmt"># Files git will never upload</span>
+  ├── package.json            <span class="cmt"># Project dependencies</span>
+  └── README.md               <span class="cmt"># Project overview</span></code></pre>
+  </div>
+
+  <hr />
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div class="section" id="getting-started">
+    <div class="section-label">
+      <div class="section-num">4</div>
+      <h2>Getting Started — One-Time Setup</h2>
+    </div>
+
+    <p>Do these steps <strong>once</strong> on your computer. After that, you just use the daily workflow.</p>
+
+    <h3>Step 1 — Install the tools</h3>
+    <ul class="steps">
+      <li>
+        <div class="step-n">A</div>
+        <div><strong>Install Git</strong> — Download from <a href="https://git-scm.com/download/win" target="_blank">git-scm.com</a> and run the installer. Accept all defaults.</div>
+      </li>
+      <li>
+        <div class="step-n">B</div>
+        <div><strong>Install Node.js</strong> — Download the LTS version from <a href="https://nodejs.org" target="_blank">nodejs.org</a>. This also installs <code>npm</code>.</div>
+      </li>
+      <li>
+        <div class="step-n">C</div>
+        <div><strong>Install VS Code</strong> — Download from <a href="https://code.visualstudio.com" target="_blank">code.visualstudio.com</a> if you don't have it.</div>
+      </li>
+      <li>
+        <div class="step-n">D</div>
+        <div><strong>Create a GitHub account</strong> — Go to <a href="https://github.com/join" target="_blank">github.com/join</a>. Use your UGA email. Then tell Tyler your username so he can add you to the repo.</div>
+      </li>
+    </ul>
+
+    <h3>Step 2 — Tell Git who you are</h3>
+    <p>Open VS Code, press <strong>Ctrl + `</strong> (backtick) to open the terminal, then type:</p>
+    <pre><code><span class="cmd">git</span> <span class="arg">config</span> --global user.name <span class="arg">"Your Full Name"</span>
+<span class="cmd">git</span> <span class="arg">config</span> --global user.email <span class="arg">"yourname@uga.edu"</span></code></pre>
+    <p>You only do this once. It labels all your commits with your name.</p>
+
+    <h3>Step 3 — Clone the repository</h3>
+    <p>Cloning means "download the entire project to my computer."</p>
+    <pre><code><span class="cmt"># In your terminal, navigate to where you want the project folder:</span>
+<span class="cmd">cd</span> <span class="arg">Documents</span>          <span class="cmt"># or wherever you want it</span>
+
+<span class="cmt"># Clone the repo — this creates a new folder called mist7571e-group3-rally:</span>
+<span class="cmd">git</span> <span class="arg">clone</span> https://github.com/tylerhubb15/mist7571e-group3-rally.git
+
+<span class="cmt"># Move into the project folder:</span>
+<span class="cmd">cd</span> <span class="arg">mist7571e-group3-rally</span></code></pre>
+
+    <div class="callout info">
+      <span class="label">💡 Easier way in VS Code</span>
+      Press <strong>Ctrl+Shift+P</strong>, type <strong>"Git: Clone"</strong>, paste the repo URL, and choose where to save it. VS Code handles everything else.
+    </div>
+
+    <h3>Step 4 — Switch to your branch</h3>
+    <p>After cloning you are on <code>main</code>. Switch to your assigned branch before touching anything:</p>
+    <pre><code><span class="cmt"># Switch to your branch. Replace role3 with your actual role number:</span>
+<span class="cmd">git</span> <span class="arg">checkout</span> feature/role3-sessions-view
+
+<span class="cmt"># Confirm you're on the right branch (you'll see a * next to it):</span>
+<span class="cmd">git</span> <span class="arg">branch</span>
+<span class="out">  feature/role2-ai-integration</span>
+<span class="out">* feature/role3-sessions-view    ← you are here</span>
+<span class="out">  main</span></code></pre>
+
+    <h3>Step 5 — Install dependencies and run the app</h3>
+    <pre><code><span class="cmt"># Install all packages the project needs:</span>
+<span class="cmd">npm</span> <span class="arg">install</span>
+
+<span class="cmt"># Start the local development server:</span>
+<span class="cmd">npm</span> <span class="arg">run dev</span>
+
+<span class="out">  VITE v5.x.x  ready in 312 ms</span>
+<span class="out">  ➜  Local:   http://localhost:5173/</span>
+<span class="out">  ➜  Network: http://192.168.x.x:5173/</span></code></pre>
+    <p>Open <strong>http://localhost:5173</strong> in your browser — you should see the Rally app running. The app works fully on fake/mock data, so no API keys are needed just to run it.</p>
+
+    <div class="callout tip">
+      <span class="label">✅ You're all set!</span>
+      If the app loads in the browser, your environment is working. Stop the server with <strong>Ctrl+C</strong> in the terminal.
+    </div>
+  </div>
+
+  <hr />
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div class="section" id="daily-workflow">
+    <div class="section-label">
+      <div class="section-num">5</div>
+      <h2>Daily Workflow — Every Time You Work</h2>
+    </div>
+
+    <div class="metaphor">
+      <strong>📰 Metaphor — The Morning Newspaper</strong>
+      Before you start writing today's story, you pick up the morning paper to see what happened since yesterday (pull). You write your story on your own notepad (edit files on your branch). When you're happy with it, you save a draft with a headline (commit). Then you submit it to the editor (push). At the end of the week, the editor reviews it and prints it (pull request).
+    </div>
+
+    <h3>The 5-step cycle — repeat every time you work</h3>
+
+    <ul class="steps">
+      <li>
+        <div class="step-n">1</div>
+        <div>
+          <strong>Pull first</strong> — always download the latest changes before you start working.
+          <pre><code><span class="cmd">git</span> <span class="arg">pull</span> origin feature/role3-sessions-view
+<span class="cmt"># (replace with your branch name)</span></code></pre>
+          <div class="callout warn" style="margin-top:8px;">
+            <span class="label">⚠️ Don't skip this</span>
+            If you forget to pull and a teammate has pushed changes, your code will get out of sync. Always pull first.
+          </div>
+        </div>
+      </li>
+
+      <li>
+        <div class="step-n">2</div>
+        <div>
+          <strong>Make sure you're on your branch</strong> — before writing any code.
+          <pre><code><span class="cmd">git</span> <span class="arg">branch</span>         <span class="cmt"># See which branch you're on</span>
+<span class="cmd">git</span> <span class="arg">checkout</span> feature/role3-sessions-view   <span class="cmt"># Switch if needed</span></code></pre>
+        </div>
+      </li>
+
+      <li>
+        <div class="step-n">3</div>
+        <div>
+          <strong>Write your code</strong> — edit files in VS Code as normal. The app reloads live at http://localhost:5173 as you save.
+        </div>
+      </li>
+
+      <li>
+        <div class="step-n">4</div>
+        <div>
+          <strong>Stage and commit</strong> — save a snapshot of what you did.
+          <pre><code><span class="cmt"># See what files you changed:</span>
+<span class="cmd">git</span> <span class="arg">status</span>
+
+<span class="cmt"># Stage all your changes (the . means "all files"):</span>
+<span class="cmd">git</span> <span class="arg">add</span> .
+
+<span class="cmt"># Save a commit with a clear message describing WHAT you did:</span>
+<span class="cmd">git</span> <span class="arg">commit</span> -m <span class="arg">"add session card component with pending/confirmed states"</span></code></pre>
+          <div class="callout tip" style="margin-top:8px;">
+            <span class="label">✅ Good commit messages</span>
+            Write short, specific descriptions: <em>"add loading spinner to AI brief"</em>, not <em>"updated stuff"</em>. Future-you will thank present-you.
+          </div>
+        </div>
+      </li>
+
+      <li>
+        <div class="step-n">5</div>
+        <div>
+          <strong>Push</strong> — upload your commits to GitHub.
+          <pre><code><span class="cmd">git</span> <span class="arg">push</span> origin feature/role3-sessions-view</code></pre>
+          Done. Your work is now saved on GitHub. Anyone on the team can see your branch.
+        </div>
+      </li>
+    </ul>
+
+    <h3>Visual summary</h3>
+    <div class="flow">
+      <div class="flow-node green">pull</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">write code</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">git add .</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">git commit</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node clay">git push</div>
+    </div>
+    <p style="font-size:13px; color:var(--muted); margin-top:6px;">Commit and push as often as you like — even if your work is unfinished. Frequent small commits are better than one big one at the end.</p>
+  </div>
+
+  <hr />
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div class="section" id="pull-requests">
+    <div class="section-label">
+      <div class="section-num">6</div>
+      <h2>Pull Requests — Merging Your Work</h2>
+    </div>
+
+    <p>When your feature is <strong>complete and tested</strong>, you open a Pull Request (PR) to merge your branch into <code>main</code>.</p>
+
+    <div class="metaphor">
+      <strong>✍️ Metaphor — Submitting a Paper for Grading</strong>
+      You've been drafting your section of the group project on your own laptop (your branch). When it's ready, you submit it to the group (open a PR). A teammate reviews it, suggests edits if needed, and then approves it. Once approved, your section gets added to the shared final document (merged into main).
+    </div>
+
+    <h3>How to open a Pull Request</h3>
+
+    <ul class="steps">
+      <li>
+        <div class="step-n">1</div>
+        <div>Push your branch to GitHub one final time: <code>git push origin feature/your-branch</code></div>
+      </li>
+      <li>
+        <div class="step-n">2</div>
+        <div>Go to <a href="https://github.com/tylerhubb15/mist7571e-group3-rally" target="_blank">github.com/tylerhubb15/mist7571e-group3-rally</a></div>
+      </li>
+      <li>
+        <div class="step-n">3</div>
+        <div>GitHub will show a yellow banner: <strong>"Your branch had recent pushes — Compare &amp; pull request."</strong> Click it.</div>
+      </li>
+      <li>
+        <div class="step-n">4</div>
+        <div>Write a title and description explaining what you built. Then click <strong>"Create pull request."</strong></div>
+      </li>
+      <li>
+        <div class="step-n">5</div>
+        <div>Tag a teammate (Role 5 — QA or Tyler) as a reviewer.</div>
+      </li>
+      <li>
+        <div class="step-n">6</div>
+        <div>Once approved, click <strong>"Merge pull request"</strong>. Your code is now in <code>main</code>.</div>
+      </li>
+    </ul>
+
+    <div class="callout info">
+      <span class="label">💡 Tip</span>
+      You don't have to wait until everything is done to open a PR. You can open a <strong>Draft PR</strong> early — it signals "I'm working on this" without merging. Just click the arrow next to "Create pull request" and choose "Create draft pull request."
+    </div>
+
+    <h3>What happens during review</h3>
+    <p>The reviewer (Role 5) will look at your code and may:</p>
+    <ul style="margin: 10px 0 14px 22px; font-size:15px; line-height:1.9;">
+      <li>✅ <strong>Approve</strong> — your PR can be merged</li>
+      <li>💬 <strong>Request changes</strong> — they'll leave comments on specific lines. Fix them, commit, push, and the PR updates automatically.</li>
+    </ul>
+  </div>
+
+  <hr />
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div class="section" id="vscode">
+    <div class="section-label">
+      <div class="section-num">7</div>
+      <h2>Using VS Code — No Terminal Needed</h2>
+    </div>
+
+    <p>VS Code has a built-in Git panel that lets you do most things without typing commands. Here's how to use it.</p>
+
+    <h3>The Source Control panel</h3>
+    <p>Click the <strong>branch icon</strong> in the left sidebar (or press <strong>Ctrl+Shift+G</strong>).</p>
+
+    <div class="vsc-panel">
+      <div class="vsc-titlebar">
+        <div class="vsc-dot" style="background:#ff5f57;"></div>
+        <div class="vsc-dot" style="background:#ffbd2e;"></div>
+        <div class="vsc-dot" style="background:#28c840;"></div>
+        <span style="margin-left:8px;">Source Control — VS Code</span>
+      </div>
+      <div class="vsc-body">
+        <span class="vsc-green">SOURCE CONTROL</span>  <span class="vsc-grey">  ↺ ↓ ↑ ✓ ···</span><br/>
+        <br/>
+        <span class="vsc-yellow">MESSAGE</span><br/>
+        <span style="color:#6e6e6e; padding-left:12px;">add session card with status states</span>  <span class="vsc-grey">← type your commit message here</span><br/>
+        <br/>
+        <span class="vsc-blue">✓ Commit &amp; Push</span>   <span class="vsc-grey">← click this button to commit + push at once</span><br/>
+        <br/>
+        <span class="vsc-green">CHANGES  (3)</span><br/>
+        <span style="padding-left:16px;">M  <span class="vsc-orange">src/components/CalendarView.jsx</span>  <span class="vsc-grey">M = modified</span></span><br/>
+        <span style="padding-left:16px;">A  <span class="vsc-orange">src/components/SessionCard.jsx</span>   <span class="vsc-grey">A = new file added</span></span><br/>
+        <span style="padding-left:16px;">M  <span class="vsc-orange">src/App.jsx</span></span><br/>
+        <br/>
+        <span class="vsc-grey">  Click the + icon next to a file to stage it, or click + next to CHANGES to stage all</span>
+      </div>
+    </div>
+
+    <h3>Committing via VS Code (click-by-click)</h3>
+    <ul class="steps">
+      <li><div class="step-n">1</div><div>Open the Source Control panel (<strong>Ctrl+Shift+G</strong>)</div></li>
+      <li><div class="step-n">2</div><div>You'll see all your changed files listed under <strong>CHANGES</strong></div></li>
+      <li><div class="step-n">3</div><div>Click the <strong>+</strong> next to "CHANGES" to stage all files</div></li>
+      <li><div class="step-n">4</div><div>Type your commit message in the <strong>Message</strong> box at the top</div></li>
+      <li><div class="step-n">5</div><div>Click the dropdown arrow on the blue <strong>Commit</strong> button and choose <strong>"Commit &amp; Push"</strong></div></li>
+    </ul>
+
+    <h3>Pulling via VS Code</h3>
+    <ul class="steps">
+      <li><div class="step-n">1</div><div>Open Source Control panel</div></li>
+      <li><div class="step-n">2</div><div>Click the <strong>···</strong> (three dots) menu at the top</div></li>
+      <li><div class="step-n">3</div><div>Choose <strong>Pull</strong></div></li>
+    </ul>
+
+    <h3>Switching branches in VS Code</h3>
+    <p>Look at the <strong>bottom-left corner</strong> of VS Code — it shows your current branch name (e.g., <code>feature/role3-sessions-view</code>). Click it to switch branches without using the terminal.</p>
+
+    <div class="callout tip">
+      <span class="label">✅ Recommended Extensions</span>
+      Install these from the VS Code Extensions panel (<strong>Ctrl+Shift+X</strong>):
+      <ul style="margin-top:8px; padding-left:20px; line-height:2;">
+        <li><strong>GitLens</strong> — shows who wrote each line and the full commit history inline</li>
+        <li><strong>GitHub Pull Requests</strong> — create and review PRs without leaving VS Code</li>
+        <li><strong>ESLint</strong> — catches code quality issues automatically</li>
+      </ul>
+    </div>
+
+    <h3>Handling a merge conflict</h3>
+    <p>A conflict happens when two people edit the same line of the same file. VS Code makes this easy to resolve:</p>
+
+    <div class="vsc-panel">
+      <div class="vsc-titlebar">
+        <div class="vsc-dot" style="background:#ff5f57;"></div>
+        <div class="vsc-dot" style="background:#ffbd2e;"></div>
+        <div class="vsc-dot" style="background:#28c840;"></div>
+        <span style="margin-left:8px;">Merge Conflict in VS Code</span>
+      </div>
+      <div class="vsc-body">
+        <span class="vsc-green">Accept Current Change</span> | <span class="vsc-blue">Accept Incoming Change</span> | Accept Both | Compare Changes<br/>
+        <br/>
+        <span style="color:#ff6b6b;">&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD (Current Change)</span><br/>
+        <span style="padding-left:16px; color:#d4d4d4;">const title = "Sessions";</span>  <span class="vsc-grey">← your version</span><br/>
+        <span style="color:#888;">=======</span><br/>
+        <span style="padding-left:16px; color:#d4d4d4;">const title = "Your Sessions";</span>  <span class="vsc-grey">← teammate's version</span><br/>
+        <span style="color:#58a6ff;">&gt;&gt;&gt;&gt;&gt;&gt;&gt; feature/role3 (Incoming Change)</span><br/>
+      </div>
+    </div>
+
+    <p>Click <strong>"Accept Current Change"</strong> or <strong>"Accept Incoming Change"</strong> (whichever is correct), then save, commit, and push. Conflict resolved.</p>
+
+    <div class="metaphor">
+      <strong>🎾 Conflict Metaphor</strong>
+      Two players both tried to book Court 3 at the same time. A conflict is GitHub saying "I can't figure out whose booking wins — you two decide." You look at both requests and pick one (or combine them), then re-submit.
+    </div>
+  </div>
+
+  <hr />
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div class="section" id="rules">
+    <div class="section-label">
+      <div class="section-num">8</div>
+      <h2>Team Rules &amp; Common Mistakes</h2>
+    </div>
+
+    <div class="card-grid">
+      <div class="card" style="border-color: #2da44e; box-shadow: 3px 4px 0 #2da44e;">
+        <div class="card-icon">✅</div>
+        <div class="card-title" style="color:#2da44e;">Always Do</div>
+        <div class="card-body" style="line-height:2;">
+          • Pull before you start working<br/>
+          • Work on your own branch only<br/>
+          • Commit with clear messages<br/>
+          • Push at the end of every session<br/>
+          • Open a PR when a feature is done
+        </div>
+      </div>
+      <div class="card" style="border-color: var(--red); box-shadow: 3px 4px 0 var(--red);">
+        <div class="card-icon">❌</div>
+        <div class="card-title" style="color:var(--red);">Never Do</div>
+        <div class="card-body" style="line-height:2;">
+          • Push directly to <code>main</code><br/>
+          • Commit a <code>.env</code> file<br/>
+          • Commit <code>node_modules/</code><br/>
+          • Put API keys in any source file<br/>
+          • Force-push (<code>--force</code>)
+        </div>
+      </div>
+    </div>
+
+    <h3>The .env file — CRITICAL security rule</h3>
+    <div class="callout danger">
+      <span class="label">🚨 Never commit .env to GitHub</span>
+      The <code>.env</code> file holds secret API keys (like the OpenAI key). If it ends up on GitHub — even in a private repo — you risk having the key stolen and your account charged thousands of dollars in AI API fees. The <code>.gitignore</code> file already blocks it, but always double-check with <code>git status</code> before pushing. If you ever see <code>.env</code> in the changes list — <strong>stop and ask Tyler before doing anything</strong>.
+    </div>
+
+    <p>Use <code>.env.example</code> instead — it's an empty template showing what keys are needed, with no real values. That file IS safe to commit.</p>
+
+    <pre><code><span class="cmt"># .env.example (safe to commit — shows structure only)</span>
+VITE_SUPABASE_URL=<span class="arg">your_supabase_url_here</span>
+VITE_SUPABASE_ANON_KEY=<span class="arg">your_anon_key_here</span>
+OPENAI_API_KEY=<span class="arg">your_openai_key_here</span>
+
+<span class="cmt"># .env (NEVER commit — holds real secrets)</span>
+VITE_SUPABASE_URL=https://xyzcompany.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1...
+OPENAI_API_KEY=sk-proj-...</span></code></pre>
+  </div>
+
+  <hr />
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div class="section" id="cheatsheet">
+    <div class="section-label">
+      <div class="section-num">9</div>
+      <h2>Quick Reference Cheat Sheet</h2>
+    </div>
+
+    <div class="qr-grid">
+      <div class="qr-card">
+        <h4>🚀 One-Time Setup</h4>
+        <pre><code><span class="cmd">git</span> <span class="arg">clone</span> &lt;repo-url&gt;
+<span class="cmd">cd</span> mist7571e-group3-rally
+<span class="cmd">git</span> <span class="arg">checkout</span> feature/roleX-...
+<span class="cmd">npm</span> <span class="arg">install</span>
+<span class="cmd">npm</span> <span class="arg">run dev</span></code></pre>
+      </div>
+
+      <div class="qr-card">
+        <h4>📅 Daily — Start of Session</h4>
+        <pre><code><span class="cmd">git</span> <span class="arg">checkout</span> feature/your-branch
+<span class="cmd">git</span> <span class="arg">pull</span> origin feature/your-branch
+<span class="cmd">npm</span> <span class="arg">run dev</span></code></pre>
+      </div>
+
+      <div class="qr-card">
+        <h4>💾 Save Your Work</h4>
+        <pre><code><span class="cmd">git</span> <span class="arg">status</span>        <span class="cmt"># what changed?</span>
+<span class="cmd">git</span> <span class="arg">add</span> .          <span class="cmt"># stage all</span>
+<span class="cmd">git</span> <span class="arg">commit</span> -m <span class="arg">"message"</span>
+<span class="cmd">git</span> <span class="arg">push</span> origin feature/your-branch</code></pre>
+      </div>
+
+      <div class="qr-card">
+        <h4>🔍 Useful Checks</h4>
+        <pre><code><span class="cmd">git</span> <span class="arg">branch</span>        <span class="cmt"># which branch am I on?</span>
+<span class="cmd">git</span> <span class="arg">log</span> --oneline  <span class="cmt"># recent commits</span>
+<span class="cmd">git</span> <span class="arg">diff</span>           <span class="cmt"># what changed?</span>
+<span class="cmd">git</span> <span class="arg">status</span>        <span class="cmt"># overall state</span></code></pre>
+      </div>
+
+      <div class="qr-card">
+        <h4>🔀 Branches</h4>
+        <pre><code><span class="cmt"># Switch to your branch:</span>
+<span class="cmd">git</span> <span class="arg">checkout</span> feature/roleX
+
+<span class="cmt"># See all branches:</span>
+<span class="cmd">git</span> <span class="arg">branch</span> -a</code></pre>
+      </div>
+
+      <div class="qr-card">
+        <h4>🆘 Undo Mistakes</h4>
+        <pre><code><span class="cmt"># Undo unsaved changes to a file:</span>
+<span class="cmd">git</span> <span class="arg">checkout</span> -- filename.jsx
+
+<span class="cmt"># Undo last commit (keeps changes):</span>
+<span class="cmd">git</span> <span class="arg">reset</span> --soft HEAD~1
+
+<span class="cmt"># When unsure — ask Tyler first!</span></code></pre>
+      </div>
+    </div>
+
+    <div class="callout tip" style="margin-top: 32px;">
+      <span class="label">🎾 Final Reminder from the Roles Doc</span>
+      <strong>The Q&amp;A at the final presentation is graded individually.</strong> The instructor may ask any team member to explain any part of the codebase — including Roles 5 and 6. Make sure you understand what your component does and how it connects to the rest of the app. Nobody escapes the codebase entirely.
+    </div>
+  </div>
+
+  <div style="margin-top: 60px; padding: 28px; background: var(--ink); color: var(--paper); border-radius: 12px; text-align: center;">
+    <div style="font-size: 28px; margin-bottom: 8px;">🎾</div>
+    <div style="font-weight: 800; font-size: 20px; margin-bottom: 6px; color: var(--optic);">Questions?</div>
+    <div style="opacity: .75; font-size: 15px;">Message Tyler (tylerhubb15) on GitHub or the group chat.<br/>Repo: <a href="https://github.com/tylerhubb15/mist7571e-group3-rally" style="color:var(--optic);">github.com/tylerhubb15/mist7571e-group3-rally</a></div>
+  </div>
+
+</div><!-- /container -->
+</body>
+</html>
