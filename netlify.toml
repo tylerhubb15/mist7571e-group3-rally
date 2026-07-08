@@ -1,0 +1,14 @@
+[build]
+  command   = "npm run build"
+  publish   = "dist"
+  functions = "netlify/functions"
+
+[dev]
+  command = "npm run dev"
+  port    = 5173
+
+# Redirect all routes to index.html so React Router (if added later) works
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
