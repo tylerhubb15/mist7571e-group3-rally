@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rally — Technical Report · Team 3</title>
+  <style>
+    :root {
+      --ink:    #1a1a2e;
+      --clay:   #e8603c;
+      --optic:  #b5d99c;
+      --paper:  #f5f0e8;
+      --paper2: #ede8df;
+      --muted:  #6b6560;
+      --white:  #ffffff;
+      --code:   #0d1117;
+      --green:  #2da44e;
+      --yellow: #c98a00;
+      --red:    #cf2222;
+      --blue:   #0969da;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+           background: var(--paper); color: var(--ink); line-height: 1.75; font-size: 15px; }
+
+    /* ── HERO ── */
+    .hero { background: var(--ink); color: var(--paper); padding: 60px 24px 52px; text-align: center; border-bottom: 4px solid var(--clay); }
+    .hero-chip { display: inline-block; background: var(--clay); color: #fff; font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; padding: 4px 14px; border-radius: 99px; margin-bottom: 18px; }
+    .hero h1 { font-size: clamp(26px, 5vw, 46px); font-weight: 900; letter-spacing: -.02em; margin-bottom: 10px; }
+    .hero h1 span { color: var(--optic); }
+    .hero p { font-size: 17px; opacity: .7; max-width: 580px; margin: 0 auto 24px; }
+    .hero-meta { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; font-size: 13px; opacity: .6; }
+    .hero-meta span { display: flex; align-items: center; gap: 5px; }
+
+    /* ── LAYOUT ── */
+    .page { max-width: 900px; margin: 0 auto; padding: 0 20px 80px; }
+
+    /* ── TOC ── */
+    .toc { background: white; border: 2px solid var(--ink); border-radius: 12px; padding: 26px 30px; margin: 36px 0; box-shadow: 4px 5px 0 var(--ink); }
+    .toc h3 { font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--clay); margin-bottom: 14px; }
+    .toc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 30px; }
+    .toc a { color: var(--ink); text-decoration: none; font-weight: 600; font-size: 14px; }
+    .toc a:hover { color: var(--clay); text-decoration: underline; }
+    .toc-num { color: var(--clay); font-weight: 800; margin-right: 5px; }
+
+    /* ── SECTIONS ── */
+    .section { margin-top: 64px; }
+    .section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; padding-bottom: 14px; border-bottom: 2px solid var(--ink); }
+    .section-num { width: 38px; height: 38px; border-radius: 50%; background: var(--clay); color: white; font-weight: 900; font-size: 17px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .section h2 { font-size: 26px; font-weight: 900; letter-spacing: -.01em; }
+    .section h3 { font-size: 18px; font-weight: 800; margin: 28px 0 10px; }
+    .section h4 { font-size: 15px; font-weight: 700; margin: 20px 0 8px; color: var(--clay); text-transform: uppercase; letter-spacing: .06em; font-size: 12px; }
+    .section p { margin-bottom: 14px; }
+
+    /* ── CALLOUTS ── */
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 18px 0; font-size: 14px; }
+    .callout.tip    { background: #d8f5e3; border-left: 4px solid var(--green); }
+    .callout.warn   { background: #fff3cd; border-left: 4px solid var(--yellow); }
+    .callout.danger { background: #ffe8e8; border-left: 4px solid var(--red); }
+    .callout.info   { background: #ddeeff; border-left: 4px solid var(--blue); }
+    .callout .clabel { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; display: block; margin-bottom: 5px; }
+    .callout.tip    .clabel { color: var(--green); }
+    .callout.warn   .clabel { color: var(--yellow); }
+    .callout.danger .clabel { color: var(--red); }
+    .callout.info   .clabel { color: var(--blue); }
+
+    /* ── METAPHOR BOX ── */
+    .metaphor { background: var(--ink); color: var(--paper); border-left: 4px solid var(--optic); border-radius: 0 10px 10px 0; padding: 18px 22px; margin: 20px 0; font-size: 14px; }
+    .metaphor strong { color: var(--optic); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; display: block; margin-bottom: 6px; }
+
+    /* ── CODE ── */
+    pre { background: var(--code); color: #e6edf3; border-radius: 10px; padding: 18px 22px; overflow-x: auto; font-size: 13px; line-height: 1.7; margin: 14px 0; font-family: "Cascadia Code","Fira Code",Consolas,monospace; }
+    code { font-family: "Cascadia Code","Fira Code",Consolas,monospace; }
+    .cmt  { color: #8b949e; font-style: italic; }
+    .kw   { color: #ff7b72; }
+    .fn   { color: #d2a8ff; }
+    .str  { color: #a5d6ff; }
+    .num  { color: #79c0ff; }
+    .op   { color: #b5d99c; }
+
+    /* ── CARDS ── */
+    .card-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin: 20px 0; }
+    .card { background: white; border: 2px solid var(--ink); border-radius: 10px; padding: 18px; box-shadow: 3px 4px 0 var(--ink); }
+    .card-icon { font-size: 26px; margin-bottom: 8px; }
+    .card-title { font-weight: 800; font-size: 14px; margin-bottom: 5px; }
+    .card-body { font-size: 13px; color: var(--muted); line-height: 1.6; }
+    .card.done   { border-color: var(--green); box-shadow: 3px 4px 0 var(--green); }
+    .card.todo   { border-color: var(--red);   box-shadow: 3px 4px 0 var(--red);   }
+    .card.wip    { border-color: var(--yellow); box-shadow: 3px 4px 0 var(--yellow); }
+
+    /* ── STATUS BADGE ── */
+    .badge { display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border-radius: 99px; }
+    .badge.done   { background: #d8f5e3; color: var(--green); }
+    .badge.todo   { background: #ffe8e8; color: var(--red); }
+    .badge.wip    { background: #fff3cd; color: var(--yellow); }
+
+    /* ── TABLE ── */
+    table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 14px; }
+    th { background: var(--ink); color: var(--paper); padding: 10px 14px; text-align: left; font-weight: 700; }
+    td { padding: 10px 14px; border-bottom: 1px solid var(--paper2); vertical-align: top; }
+    tr:nth-child(even) td { background: var(--paper2); }
+    td code { background: #e8e2d8; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+
+    /* ── PROGRESS BARS ── */
+    .progress-item { margin-bottom: 16px; }
+    .progress-label { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-bottom: 5px; }
+    .progress-bar { height: 10px; background: var(--paper2); border-radius: 99px; border: 1.5px solid var(--ink); overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 99px; }
+
+    /* ── SVG DIAGRAMS ── */
+    .diagram-wrap { background: white; border: 2px solid var(--ink); border-radius: 12px; padding: 24px; margin: 22px 0; box-shadow: 3px 4px 0 var(--ink); overflow-x: auto; }
+    .diagram-wrap h4 { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
+    svg text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+
+    /* ── FLOW ARROWS ── */
+    .flow { display: flex; align-items: center; flex-wrap: wrap; gap: 0; margin: 16px 0; }
+    .fnode { background: white; border: 2px solid var(--ink); border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 700; white-space: nowrap; box-shadow: 2px 3px 0 var(--ink); }
+    .fnode.ink   { background: var(--ink); color: white; }
+    .fnode.clay  { background: var(--clay); color: white; }
+    .fnode.green { background: var(--optic); }
+    .fnode.red   { background: #ffe8e8; border-color: var(--red); color: var(--red); }
+    .farrow { font-size: 18px; color: var(--muted); padding: 0 6px; }
+
+    hr { border: none; border-top: 2px dashed var(--paper2); margin: 60px 0; }
+
+    @media (max-width: 600px) {
+      .toc-grid { grid-template-columns: 1fr; }
+      .flow { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════  HERO  ══════════════════════ -->
+<div class="hero">
+  <div class="hero-chip">🎾 MIST 7571E · Team 3 · Technical Report</div>
+  <h1>Rally — <span>How It All Works</span></h1>
+  <p>A plain-English walkthrough of the architecture, data flow, deployment pipeline, and everything still left to build.</p>
+  <div class="hero-meta">
+    <span>📅 July 2026</span>
+    <span>🌐 rally-team3-mist7571e.netlify.app</span>
+    <span>📦 github.com/tylerhubb15/mist7571e-group3-rally</span>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- TOC -->
+  <div class="toc">
+    <h3>📋 Contents</h3>
+    <div class="toc-grid">
+      <div><a href="#s1"><span class="toc-num">1</span> The Big Picture</a></div>
+      <div><a href="#s2"><span class="toc-num">2</span> The Tech Stack</a></div>
+      <div><a href="#s3"><span class="toc-num">3</span> System Architecture Diagram</a></div>
+      <div><a href="#s4"><span class="toc-num">4</span> How React Works in This App</a></div>
+      <div><a href="#s5"><span class="toc-num">5</span> Component Tree & Data Flow</a></div>
+      <div><a href="#s6"><span class="toc-num">6</span> The Matching Engine</a></div>
+      <div><a href="#s7"><span class="toc-num">7</span> The AI Integration (What's Missing)</a></div>
+      <div><a href="#s8"><span class="toc-num">8</span> The Deployment Pipeline</a></div>
+      <div><a href="#s9"><span class="toc-num">9</span> GitHub Workflow</a></div>
+      <div><a href="#s10"><span class="toc-num">10</span> Phase 2 — Supabase Backend</a></div>
+      <div><a href="#s11"><span class="toc-num">11</span> What's Built vs. What's Missing</a></div>
+      <div><a href="#s12"><span class="toc-num">12</span> Rubric Gap Analysis</a></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════  1  ══════════════════════ -->
+  <div class="section" id="s1">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <h2>The Big Picture</h2>
+    </div>
+
+    <p>Rally is a web app that helps recreational tennis players find compatible hitting partners in Athens, GA. Think of it as a dating app for tennis — you fill in your skill level, schedule, and what you're looking for, and the app ranks nearby players by how well they match you.</p>
+
+    <div class="metaphor">
+      <strong>🎾 The Restaurant Metaphor</strong>
+      Imagine the whole app is a restaurant. <strong>React</strong> is the dining room — what the customer sees and interacts with. <strong>Vite</strong> is the kitchen equipment that cooks everything fast. <strong>Netlify</strong> is the building itself — the address people go to. <strong>GitHub</strong> is the head chef's recipe book — every change is recorded and any chef can work from it. <strong>Supabase</strong> (Phase 2) is the walk-in fridge — persistent storage. And <strong>OpenAI</strong> is the sommelier — it reads your table and suggests the perfect pairing.
+    </div>
+
+    <p>The app currently runs on <strong>mock/fake data</strong> (Phase 1). In Phase 2, it connects to a real Supabase database. The AI feature (pre-session brief) is the bridge between the two phases — it runs server-side today but the real OpenAI call is still to be implemented.</p>
+  </div>
+
+  <!-- ══════════════════════  2  ══════════════════════ -->
+  <div class="section" id="s2">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <h2>The Tech Stack</h2>
+    </div>
+
+    <table>
+      <thead><tr><th>Tool</th><th>Role</th><th>Where It Lives</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><strong>React 18</strong></td><td>The UI framework. All visible components are React.</td><td><code>src/</code></td><td><span class="badge done">Live</span></td></tr>
+        <tr><td><strong>Vite 6</strong></td><td>Builds and serves the app. Instant hot-reload in dev.</td><td><code>vite.config.js</code></td><td><span class="badge done">Live</span></td></tr>
+        <tr><td><strong>Lucide React</strong></td><td>Icon library used throughout the UI.</td><td><code>package.json</code></td><td><span class="badge done">Live</span></td></tr>
+        <tr><td><strong>Netlify</strong></td><td>Hosts the live app. Runs server-side functions (AI proxy).</td><td><code>netlify.toml</code></td><td><span class="badge done">Live</span></td></tr>
+        <tr><td><strong>Netlify Functions</strong></td><td>Server-side Node.js for the OpenAI API proxy.</td><td><code>netlify/functions/</code></td><td><span class="badge wip">Stub only</span></td></tr>
+        <tr><td><strong>OpenAI API</strong></td><td>Generates the pre-session brief (compatibility summary).</td><td>Called from Netlify Function</td><td><span class="badge todo">Not built</span></td></tr>
+        <tr><td><strong>Supabase</strong></td><td>Postgres database + Auth + Realtime (Phase 2).</td><td><code>supabase/schema.sql</code></td><td><span class="badge todo">Phase 2</span></td></tr>
+        <tr><td><strong>GitHub</strong></td><td>Version control. Source of truth for all code.</td><td>github.com/tylerhubb15/...</td><td><span class="badge done">Live</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ══════════════════════  3  ══════════════════════ -->
+  <div class="section" id="s3">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <h2>System Architecture Diagram</h2>
+    </div>
+    <p>This shows every system involved and how they talk to each other. Green arrows are working today. Orange arrows are the AI path (stub deployed, real call not yet implemented). Gray arrows are Phase 2.</p>
+
+    <div class="diagram-wrap">
+      <h4>Full System — Phase 1 (solid) + Phase 2 (dashed)</h4>
+      <svg viewBox="0 0 820 500" width="100%" style="max-width:820px; display:block; margin:0 auto;">
+        <defs>
+          <marker id="arr-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#2da44e"/>
+          </marker>
+          <marker id="arr-clay" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#e8603c"/>
+          </marker>
+          <marker id="arr-gray" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#aaa"/>
+          </marker>
+          <marker id="arr-blue" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#0969da"/>
+          </marker>
+        </defs>
+
+        <!-- USER -->
+        <rect x="340" y="20" width="140" height="52" rx="10" fill="#1a1a2e" stroke="#1a1a2e"/>
+        <text x="410" y="43" text-anchor="middle" fill="#f5f0e8" font-size="13" font-weight="800">👤 USER</text>
+        <text x="410" y="62" text-anchor="middle" fill="#b5d99c" font-size="11">Browser</text>
+
+        <!-- REACT APP -->
+        <rect x="290" y="130" width="240" height="60" rx="10" fill="white" stroke="#1a1a2e" stroke-width="2"/>
+        <text x="410" y="156" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="800">⚛️ React App</text>
+        <text x="410" y="176" text-anchor="middle" fill="#6b6560" font-size="11">Vite 6 · src/ · localhost:5173</text>
+
+        <!-- NETLIFY CDN -->
+        <rect x="290" y="255" width="240" height="60" rx="10" fill="#ddeeff" stroke="#0969da" stroke-width="2"/>
+        <text x="410" y="281" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="800">🌐 Netlify CDN</text>
+        <text x="410" y="299" text-anchor="middle" fill="#0969da" font-size="11">rally-team3-mist7571e.netlify.app</text>
+
+        <!-- NETLIFY FUNCTION -->
+        <rect x="560" y="255" width="200" height="60" rx="10" fill="#fff3cd" stroke="#c98a00" stroke-width="2"/>
+        <text x="660" y="281" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="800">⚡ Netlify Function</text>
+        <text x="660" y="299" text-anchor="middle" fill="#c98a00" font-size="11">ai-brief.js · server-side proxy</text>
+
+        <!-- OPENAI -->
+        <rect x="580" y="390" width="160" height="52" rx="10" fill="#ffe8e8" stroke="#cf2222" stroke-width="2"/>
+        <text x="660" y="413" text-anchor="middle" fill="#cf2222" font-size="13" font-weight="800">🤖 OpenAI API</text>
+        <text x="660" y="431" text-anchor="middle" fill="#cf2222" font-size="11">gpt-4o (NOT YET BUILT)</text>
+
+        <!-- GITHUB -->
+        <rect x="60" y="255" width="170" height="60" rx="10" fill="#f5f0e8" stroke="#1a1a2e" stroke-width="2"/>
+        <text x="145" y="281" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="800">🐙 GitHub</text>
+        <text x="145" y="299" text-anchor="middle" fill="#6b6560" font-size="11">tylerhubb15/mist7571e-...</text>
+
+        <!-- SUPABASE -->
+        <rect x="60" y="390" width="170" height="52" rx="10" fill="#ede8df" stroke="#aaa" stroke-width="2" stroke-dasharray="6,3"/>
+        <text x="145" y="413" text-anchor="middle" fill="#aaa" font-size="13" font-weight="800">🗄️ Supabase</text>
+        <text x="145" y="431" text-anchor="middle" fill="#aaa" font-size="11">Phase 2 · Postgres + Auth</text>
+
+        <!-- MOCKDATA -->
+        <rect x="60" y="130" width="170" height="60" rx="10" fill="#d8f5e3" stroke="#2da44e" stroke-width="2"/>
+        <text x="145" y="156" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="800">📦 Mock Data</text>
+        <text x="145" y="174" text-anchor="middle" fill="#2da44e" font-size="11">src/data/mockData.js</text>
+
+        <!-- ARROWS -->
+        <!-- User ↔ React -->
+        <line x1="410" y1="72" x2="410" y2="128" stroke="#2da44e" stroke-width="2" marker-end="url(#arr-green)"/>
+        <line x1="400" y1="128" x2="400" y2="72" stroke="#2da44e" stroke-width="2" marker-end="url(#arr-green)"/>
+
+        <!-- Mock Data → React -->
+        <line x1="230" y1="160" x2="288" y2="160" stroke="#2da44e" stroke-width="2" marker-end="url(#arr-green)"/>
+
+        <!-- React → Netlify CDN (deployed build) -->
+        <line x1="410" y1="190" x2="410" y2="253" stroke="#0969da" stroke-width="2" marker-end="url(#arr-blue)"/>
+
+        <!-- GitHub → Netlify (CD deploy) -->
+        <line x1="230" y1="285" x2="288" y2="285" stroke="#0969da" stroke-width="2" marker-end="url(#arr-blue)"/>
+        <text x="258" y="278" text-anchor="middle" fill="#0969da" font-size="10" font-weight="700">CD</text>
+
+        <!-- React → Netlify Function -->
+        <line x1="530" y1="175" x2="600" y2="253" stroke="#e8603c" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#arr-clay)"/>
+        <text x="590" y="218" fill="#e8603c" font-size="10" font-weight="700">POST (stub)</text>
+
+        <!-- Netlify Function → OpenAI -->
+        <line x1="660" y1="315" x2="660" y2="388" stroke="#cf2222" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#arr-clay)"/>
+        <text x="670" y="358" fill="#cf2222" font-size="10" font-weight="700">NOT BUILT</text>
+
+        <!-- Supabase ↔ React (Phase 2) -->
+        <line x1="145" y1="388" x2="145" y2="318" stroke="#aaa" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#arr-gray)"/>
+        <text x="100" y="362" fill="#aaa" font-size="10">Phase 2</text>
+
+        <!-- LEGEND -->
+        <rect x="290" y="430" width="240" height="60" rx="8" fill="#f5f0e8" stroke="#ccc"/>
+        <text x="300" y="450" fill="#1a1a2e" font-size="11" font-weight="700">LEGEND</text>
+        <line x1="300" y1="463" x2="330" y2="463" stroke="#2da44e" stroke-width="2"/>
+        <text x="335" y="467" fill="#2da44e" font-size="10">Built &amp; working</text>
+        <line x1="300" y1="478" x2="330" y2="478" stroke="#e8603c" stroke-width="2" stroke-dasharray="4,2"/>
+        <text x="335" y="482" fill="#e8603c" font-size="10">Stub deployed, logic missing</text>
+        <line x1="430" y1="463" x2="460" y2="463" stroke="#aaa" stroke-width="2" stroke-dasharray="4,2"/>
+        <text x="465" y="467" fill="#aaa" font-size="10">Phase 2 (not started)</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ══════════════════════  4  ══════════════════════ -->
+  <div class="section" id="s4">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <h2>How React Works in This App</h2>
+    </div>
+
+    <div class="metaphor">
+      <strong>🧩 The Lego Metaphor</strong>
+      React breaks the UI into reusable pieces called <strong>components</strong> — like Lego bricks. Each brick knows how to draw itself. You snap bricks together to build the full app. When a piece of data changes (e.g., the user changes their NTRP rating), React automatically redraws only the bricks that use that data — no manual DOM manipulation needed.
+    </div>
+
+    <h3>The two rules React runs on</h3>
+    <div class="card-row">
+      <div class="card">
+        <div class="card-icon">📊</div>
+        <div class="card-title">State — "memory"</div>
+        <div class="card-body">Variables that React watches. When state changes, React re-renders. Example: <code>const [tab, setTab] = useState("discover")</code> — changes which tab is visible.</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">📬</div>
+        <div class="card-title">Props — "messages"</div>
+        <div class="card-body">Data passed from a parent component to a child. Example: <code>&lt;Profile me={me} setMe={setMe} /&gt;</code> — the profile receives the user object and a setter.</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">⚙️</div>
+        <div class="card-title">Hooks — "superpowers"</div>
+        <div class="card-body"><code>useState</code> gives state. <code>useMemo</code> caches expensive calculations (like re-ranking 7 players). <code>useEffect</code> runs side effects (API calls, timers).</div>
+      </div>
+    </div>
+
+    <h3>How state flows top-down in Rally</h3>
+    <p>All the important state lives in <code>App.jsx</code> at the top. It passes pieces of that state down to child components via props. When a child needs to change something, it calls a function that was passed down from App.</p>
+
+    <pre><code><span class="cmt">// App.jsx — the "brain" of the app</span>
+<span class="kw">const</span> [tab, setTab]         = useState(<span class="str">"discover"</span>);   <span class="cmt">// which screen is visible</span>
+<span class="kw">const</span> [me, setMe]           = useState(ME);            <span class="cmt">// the logged-in user's profile</span>
+<span class="kw">const</span> [sessions, setSessions] = useState(SEED_SESSIONS); <span class="cmt">// all booked sessions</span>
+<span class="kw">const</span> [modal, setModal]     = useState(<span class="kw">null</span>);          <span class="cmt">// which modal is open</span>
+
+<span class="cmt">// State flows DOWN via props:</span>
+&lt;<span class="fn">Discover</span> me={me} onPropose={(p) =&gt; setModal(p)} /&gt;
+&lt;<span class="fn">Profile</span>  me={me} setMe={setMe} /&gt;
+&lt;<span class="fn">CalendarView</span> sessions={sessions} setSessions={setSessions} /&gt;</code></pre>
+
+    <div class="callout info">
+      <span class="clabel">💡 Why this matters for the rubric</span>
+      The rubric specifically requires "props and state used correctly." The current structure is clean — state lives at the right level and flows predictably. Don't move state into child components unless it's local-only.
+    </div>
+  </div>
+
+  <!-- ══════════════════════  5  ══════════════════════ -->
+  <div class="section" id="s5">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <h2>Component Tree &amp; Data Flow</h2>
+    </div>
+
+    <div class="diagram-wrap">
+      <h4>Component hierarchy — how data flows through the app</h4>
+      <svg viewBox="0 0 800 420" width="100%" style="max-width:800px; display:block; margin:0 auto;">
+
+        <!-- App.jsx root -->
+        <rect x="300" y="10" width="200" height="48" rx="8" fill="#1a1a2e"/>
+        <text x="400" y="32" text-anchor="middle" fill="#f5f0e8" font-size="13" font-weight="800">App.jsx</text>
+        <text x="400" y="50" text-anchor="middle" fill="#b5d99c" font-size="10">tab · me · sessions · modal</text>
+
+        <!-- Level 2 components -->
+        <rect x="20"  y="110" width="130" height="44" rx="8" fill="white" stroke="#1a1a2e" stroke-width="2"/>
+        <text x="85"  y="131" text-anchor="middle" font-size="12" font-weight="800">Discover</text>
+        <text x="85"  y="148" text-anchor="middle" fill="#6b6560" font-size="10">me (read)</text>
+
+        <rect x="165" y="110" width="130" height="44" rx="8" fill="white" stroke="#1a1a2e" stroke-width="2"/>
+        <text x="230" y="131" text-anchor="middle" font-size="12" font-weight="800">CalendarView</text>
+        <text x="230" y="148" text-anchor="middle" fill="#6b6560" font-size="10">sessions (r/w)</text>
+
+        <rect x="310" y="110" width="130" height="44" rx="8" fill="white" stroke="#1a1a2e" stroke-width="2"/>
+        <text x="375" y="131" text-anchor="middle" font-size="12" font-weight="800">Profile</text>
+        <text x="375" y="148" text-anchor="middle" fill="#6b6560" font-size="10">me (r/w)</text>
+
+        <rect x="455" y="110" width="130" height="44" rx="8" fill="white" stroke="#1a1a2e" stroke-width="2"/>
+        <text x="520" y="131" text-anchor="middle" font-size="12" font-weight="800">CourtsMap</text>
+        <text x="520" y="148" text-anchor="middle" fill="#6b6560" font-size="10">static data</text>
+
+        <rect x="600" y="110" width="130" height="44" rx="8" fill="white" stroke="#1a1a2e" stroke-width="2"/>
+        <text x="665" y="131" text-anchor="middle" font-size="12" font-weight="800">Messages</text>
+        <text x="665" y="148" text-anchor="middle" fill="#6b6560" font-size="10">mock only</text>
+
+        <!-- Lines App → Level 2 -->
+        <line x1="400" y1="58" x2="85"  y2="110" stroke="#1a1a2e" stroke-width="1.5"/>
+        <line x1="400" y1="58" x2="230" y2="110" stroke="#1a1a2e" stroke-width="1.5"/>
+        <line x1="400" y1="58" x2="375" y2="110" stroke="#1a1a2e" stroke-width="1.5"/>
+        <line x1="400" y1="58" x2="520" y2="110" stroke="#1a1a2e" stroke-width="1.5"/>
+        <line x1="400" y1="58" x2="665" y2="110" stroke="#1a1a2e" stroke-width="1.5"/>
+
+        <!-- Level 3 — Discover children -->
+        <rect x="20" y="210" width="130" height="44" rx="8" fill="#d8f5e3" stroke="#2da44e" stroke-width="2"/>
+        <text x="85" y="231" text-anchor="middle" font-size="12" font-weight="800">ScoreRing</text>
+        <text x="85" y="248" text-anchor="middle" fill="#2da44e" font-size="10">scoreOf() result</text>
+
+        <rect x="165" y="210" width="130" height="44" rx="8" fill="#fff3cd" stroke="#c98a00" stroke-width="2"/>
+        <text x="230" y="231" text-anchor="middle" font-size="12" font-weight="800">ProposeModal</text>
+        <text x="230" y="248" text-anchor="middle" fill="#c98a00" font-size="10">player · me · onConfirm</text>
+
+        <!-- Level 3 — missing AI brief -->
+        <rect x="310" y="210" width="130" height="44" rx="8" fill="#ffe8e8" stroke="#cf2222" stroke-width="2" stroke-dasharray="6,3"/>
+        <text x="375" y="231" text-anchor="middle" fill="#cf2222" font-size="12" font-weight="800">AIBrief ⚠</text>
+        <text x="375" y="248" text-anchor="middle" fill="#cf2222" font-size="10">NOT YET BUILT</text>
+
+        <!-- Lines Level 2 → Level 3 -->
+        <line x1="85"  y1="154" x2="85"  y2="210" stroke="#2da44e" stroke-width="1.5"/>
+        <line x1="230" y1="154" x2="230" y2="210" stroke="#c98a00" stroke-width="1.5"/>
+        <line x1="375" y1="154" x2="375" y2="210" stroke="#cf2222" stroke-width="1.5" stroke-dasharray="5,3"/>
+
+        <!-- matching engine box -->
+        <rect x="20" y="310" width="200" height="52" rx="8" fill="#1a1a2e"/>
+        <text x="120" y="333" text-anchor="middle" fill="#f5f0e8" font-size="12" font-weight="800">🎯 matching.js</text>
+        <text x="120" y="352" text-anchor="middle" fill="#b5d99c" font-size="10">scoreOf(me, player) → 0–100</text>
+
+        <line x1="85" y1="254" x2="120" y2="310" stroke="#1a1a2e" stroke-width="1.5"/>
+
+        <!-- mockData box -->
+        <rect x="550" y="310" width="200" height="52" rx="8" fill="#d8f5e3" stroke="#2da44e" stroke-width="2"/>
+        <text x="650" y="333" text-anchor="middle" font-size="12" font-weight="800">📦 mockData.js</text>
+        <text x="650" y="352" text-anchor="middle" fill="#6b6560" font-size="10">ME · PLAYERS · COURTS · SESSIONS</text>
+
+        <line x1="85"  y1="110" x2="650" y2="310" stroke="#2da44e" stroke-width="1" stroke-dasharray="4,3"/>
+        <line x1="375" y1="110" x2="650" y2="310" stroke="#2da44e" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="690" y="295" fill="#2da44e" font-size="10">reads from</text>
+
+        <!-- Netlify fn -->
+        <rect x="310" y="310" width="200" height="52" rx="8" fill="#fff3cd" stroke="#c98a00" stroke-width="2" stroke-dasharray="6,3"/>
+        <text x="410" y="333" text-anchor="middle" font-size="12" font-weight="800">⚡ ai-brief.js</text>
+        <text x="410" y="352" text-anchor="middle" fill="#c98a00" font-size="10">Netlify Function (stub)</text>
+
+        <line x1="375" y1="254" x2="410" y2="310" stroke="#cf2222" stroke-width="1.5" stroke-dasharray="5,3"/>
+      </svg>
+    </div>
+
+    <h3>The key data handoffs</h3>
+    <table>
+      <thead><tr><th>From</th><th>To</th><th>What's passed</th><th>How</th></tr></thead>
+      <tbody>
+        <tr><td><code>mockData.js</code></td><td><code>Discover</code></td><td>Array of 7 player objects</td><td>Direct import</td></tr>
+        <tr><td><code>matching.js</code></td><td><code>Discover</code></td><td><code>scoreOf(me, player)</code> → score 0–100</td><td><code>useMemo</code> hook</td></tr>
+        <tr><td><code>App.jsx</code></td><td><code>Profile</code></td><td><code>me</code> state + <code>setMe</code> setter</td><td>Props</td></tr>
+        <tr><td><code>Profile</code></td><td><code>Discover</code> (re-rank)</td><td>Updated <code>me</code> object</td><td>State lifted to App, Discover re-renders</td></tr>
+        <tr><td><code>Discover</code></td><td><code>ProposeModal</code></td><td>Selected player object</td><td><code>onPropose(player)</code> callback</td></tr>
+        <tr><td><code>ProposeModal</code></td><td><code>App → CalendarView</code></td><td>New session <code>{player, slot, court}</code></td><td><code>onConfirm()</code> callback</td></tr>
+        <tr><td><code>CalendarView</code></td><td><code>AIBrief</code> (future)</td><td>Session + player data for prompt</td><td>Props (component not yet built)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ══════════════════════  6  ══════════════════════ -->
+  <div class="section" id="s6">
+    <div class="section-header">
+      <div class="section-num">6</div>
+      <h2>The Matching Engine</h2>
+    </div>
+
+    <p>The heart of the app. Located in <code>src/lib/matching.js</code>, the <code>scoreOf(me, player)</code> function takes two player profiles and returns a compatibility score from 0–100.</p>
+
+    <div class="metaphor">
+      <strong>🎯 The Compatibility Metaphor</strong>
+      Think of it like a job interview scoring sheet. You score a candidate on four criteria and weight each one. The candidate with the highest total weighted score gets the offer. Rally does the same: it scores every player on four dimensions and ranks them by total score.
+    </div>
+
+    <h3>The formula (weighted scoring)</h3>
+    <table>
+      <thead><tr><th>Dimension</th><th>Weight</th><th>How it's calculated</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Skill (NTRP)</strong></td><td>35%</td><td>Closer NTRP ratings = higher score. Max 1 point if exact match; 0 if >1.5 levels apart.</td></tr>
+        <tr><td><strong>Availability</strong></td><td>30%</td><td>Shared time slots ÷ min(my slots, their slots). More overlap = higher score.</td></tr>
+        <tr><td><strong>Distance</strong></td><td>20%</td><td>Linear scale: 0 distance = 1.0; beyond search radius = 0.</td></tr>
+        <tr><td><strong>Intent</strong></td><td>15%</td><td>Same intent = 1.0; one step apart = 0.6; two+ steps = 0.25. (Casual → Drilling → Competitive → Match)</td></tr>
+      </tbody>
+    </table>
+
+    <pre><code><span class="cmt">// src/lib/matching.js — the exact formula</span>
+<span class="kw">export function</span> <span class="fn">scoreOf</span>(me, player) {
+  <span class="kw">const</span> skill  = Math.max(<span class="num">0</span>, <span class="num">1</span> - Math.abs(me.ntrp - player.ntrp) / <span class="num">1.5</span>);
+  <span class="kw">const</span> dist   = Math.max(<span class="num">0</span>, <span class="num">1</span> - player.dist / me.radius);
+  <span class="kw">const</span> overlap = player.slots.filter((s) => me.slots.includes(s));
+  <span class="kw">const</span> avail  = me.slots.length ? overlap.length / Math.min(me.slots.length, player.slots.length) : <span class="num">0</span>;
+  <span class="kw">const</span> gap    = Math.abs(intentRank(me.intent) - intentRank(player.intent));
+  <span class="kw">const</span> intent = gap === <span class="num">0</span> ? <span class="num">1</span> : gap === <span class="num">1</span> ? <span class="num">0.6</span> : <span class="num">0.25</span>;
+
+  <span class="kw">const</span> total = skill * <span class="num">0.35</span> + avail * <span class="num">0.3</span> + dist * <span class="num">0.2</span> + intent * <span class="num">0.15</span>;
+  <span class="kw">return</span> { total: Math.round(total * <span class="num">100</span>), parts: { Skill, Avail, Dist, Intent }, overlap };
+}</code></pre>
+
+    <div class="callout tip">
+      <span class="clabel">✅ This formula is the same one in supabase/schema.sql</span>
+      The Phase 2 Postgres function <code>find_matches()</code> implements identical weights so server-side ranking matches client-side ranking.
+    </div>
+  </div>
+
+  <!-- ══════════════════════  7  ══════════════════════ -->
+  <div class="section" id="s7">
+    <div class="section-header">
+      <div class="section-num">7</div>
+      <h2>The AI Integration — What's Missing</h2>
+    </div>
+
+    <p>This is <strong>Role 2's primary deliverable</strong> and the highest-weighted single component on the rubric (20 pts). Here's how it's designed to work and what still needs to be built.</p>
+
+    <div class="metaphor">
+      <strong>🤝 The Personal Trainer Metaphor</strong>
+      When you book a training session with a new gym partner, the gym's AI assistant reads both your profiles and writes a one-page brief: "You're evenly matched on skill, but Alex prefers baseline rallies while you like net approaches — here's a warm-up drill that suits both styles." That's the pre-session brief. It reads structured data and returns personalized advice. That's exactly what OpenAI needs to do here.
+    </div>
+
+    <h3>The intended flow (end-to-end)</h3>
+    <div class="flow">
+      <div class="fnode green">User proposes session</div>
+      <div class="farrow">→</div>
+      <div class="fnode">CalendarView confirms</div>
+      <div class="farrow">→</div>
+      <div class="fnode clay">POST to /.netlify/functions/ai-brief</div>
+      <div class="farrow">→</div>
+      <div class="fnode" style="border-color:var(--red);color:var(--red)">OpenAI API call ⚠</div>
+      <div class="farrow">→</div>
+      <div class="fnode">AI brief displayed</div>
+    </div>
+
+    <h3>What's already in place</h3>
+    <div class="card-row">
+      <div class="card done">
+        <div class="card-icon">✅</div>
+        <div class="card-title">Netlify Function file exists</div>
+        <div class="card-body"><code>netlify/functions/ai-brief.js</code> is deployed. The endpoint <code>/.netlify/functions/ai-brief</code> is live and returns a stub response.</div>
+      </div>
+      <div class="card done">
+        <div class="card-icon">✅</div>
+        <div class="card-title">Server-side isolation</div>
+        <div class="card-body">The architecture is correct. The API key will live in Netlify's environment variables dashboard — never in the code or repo.</div>
+      </div>
+    </div>
+
+    <h3>What still needs to be built</h3>
+    <div class="card-row">
+      <div class="card todo">
+        <div class="card-icon">❌</div>
+        <div class="card-title">OpenAI call in ai-brief.js</div>
+        <div class="card-body">Replace the stub with a real <code>fetch</code> to <code>api.openai.com/v1/chat/completions</code>. Build a structured prompt from the two player profiles.</div>
+      </div>
+      <div class="card todo">
+        <div class="card-icon">❌</div>
+        <div class="card-title">AIBrief display component</div>
+        <div class="card-body">A React component in <code>CalendarView</code> that calls the function and shows the result with a loading state and error state.</div>
+      </div>
+      <div class="card todo">
+        <div class="card-icon">❌</div>
+        <div class="card-title">OPENAI_API_KEY in Netlify</div>
+        <div class="card-body">Set in Netlify dashboard → Site settings → Environment variables. Never in <code>.env</code>, never in any committed file.</div>
+      </div>
+    </div>
+
+    <h3>What the prompt should look like</h3>
+    <pre><code><span class="cmt">// Target structure for the OpenAI prompt (to be built in ai-brief.js)</span>
+{
+  role: <span class="str">"system"</span>,
+  content: <span class="str">"You are a tennis coach generating a pre-session brief.
+            Return JSON: { summary, warmup, focus, prediction }."</span>
+},
+{
+  role: <span class="str">"user"</span>,
+  content: <span class="str">`Player A: 4.0 NTRP, Match practice, Right-handed, Wilson Blade.
+            Player B: 4.0 NTRP, Match practice, Right-handed, Babolat Pure Aero.
+            Shared slots: Mon EVE, Sat AM. Court: Bishop Park.
+            Generate a pre-session brief.`</span>
+}</code></pre>
+
+    <div class="callout danger">
+      <span class="clabel">🚨 Security requirement (rubric)</span>
+      The OpenAI key must <strong>never</strong> appear in any <code>src/</code> file, any <code>.env</code> committed to git, or anywhere in the repo. It lives only in the Netlify environment variables dashboard. This is checked by the rubric's Code Quality category.
+    </div>
+  </div>
+
+  <!-- ══════════════════════  8  ══════════════════════ -->
+  <div class="section" id="s8">
+    <div class="section-header">
+      <div class="section-num">8</div>
+      <h2>The Deployment Pipeline</h2>
+    </div>
+
+    <div class="metaphor">
+      <strong>🏭 The Factory Metaphor</strong>
+      GitHub is the blueprint room — all the design specs live there. Netlify is the factory floor. When a new blueprint is approved (merged to main), the factory automatically reads it, assembles a new product (builds the app), and puts it on the shelf (CDN) for anyone in the world to pick up. You never have to manually carry products to the shelf.
+    </div>
+
+    <h3>Current state (manual deploy)</h3>
+    <div class="flow">
+      <div class="fnode">Write code locally</div>
+      <div class="farrow">→</div>
+      <div class="fnode">git push origin main</div>
+      <div class="farrow">→</div>
+      <div class="fnode clay">npx netlify deploy --prod</div>
+      <div class="farrow">→</div>
+      <div class="fnode green">Live at netlify.app</div>
+    </div>
+
+    <h3>Target state (auto continuous deployment)</h3>
+    <div class="flow">
+      <div class="fnode">Write code</div>
+      <div class="farrow">→</div>
+      <div class="fnode">git push to branch</div>
+      <div class="farrow">→</div>
+      <div class="fnode">Open PR → merge to main</div>
+      <div class="farrow">→</div>
+      <div class="fnode clay">Netlify auto-builds</div>
+      <div class="farrow">→</div>
+      <div class="fnode green">Live in ~60 seconds</div>
+    </div>
+
+    <div class="callout warn">
+      <span class="clabel">⚠️ One step remaining</span>
+      Continuous deployment requires linking the GitHub repo to Netlify in the dashboard. Go to <strong>app.netlify.com/projects/rally-team3-mist7571e/configuration/deploys</strong> → "Link to Git provider" → GitHub → select the repo. Until this is done, deployments must be triggered manually.
+    </div>
+
+    <h3>Key deployment facts</h3>
+    <table>
+      <thead><tr><th>Setting</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Live URL</td><td><code>https://rally-team3-mist7571e.netlify.app</code></td></tr>
+        <tr><td>Admin URL</td><td><code>https://app.netlify.com/projects/rally-team3-mist7571e</code></td></tr>
+        <tr><td>Build command</td><td><code>npm run build</code></td></tr>
+        <tr><td>Publish directory</td><td><code>dist/</code> (Vite output)</td></tr>
+        <tr><td>Functions directory</td><td><code>netlify/functions/</code></td></tr>
+        <tr><td>AI function endpoint</td><td><code>/.netlify/functions/ai-brief</code></td></tr>
+        <tr><td>Environment variables</td><td>Set in Netlify dashboard only (never in repo)</td></tr>
+        <tr><td>SPA redirect rule</td><td><code>/* → /index.html</code> (in netlify.toml)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ══════════════════════  9  ══════════════════════ -->
+  <div class="section" id="s9">
+    <div class="section-header">
+      <div class="section-num">9</div>
+      <h2>GitHub Workflow</h2>
+    </div>
+
+    <div class="diagram-wrap">
+      <h4>Branch strategy — how code moves from development to production</h4>
+      <svg viewBox="0 0 760 240" width="100%" style="max-width:760px; display:block; margin:0 auto;">
+        <!-- Main line -->
+        <line x1="40" y1="50" x2="720" y2="50" stroke="#1a1a2e" stroke-width="3"/>
+        <circle cx="40"  cy="50" r="8" fill="#1a1a2e"/>
+        <circle cx="250" cy="50" r="8" fill="#2da44e"/>
+        <circle cx="500" cy="50" r="8" fill="#2da44e"/>
+        <circle cx="720" cy="50" r="8" fill="#e8603c"/>
+        <text x="40"  y="30" text-anchor="middle" fill="#1a1a2e" font-size="11" font-weight="700">initial commit</text>
+        <text x="250" y="30" text-anchor="middle" fill="#2da44e" font-size="11" font-weight="700">PR merged</text>
+        <text x="500" y="30" text-anchor="middle" fill="#2da44e" font-size="11" font-weight="700">PR merged</text>
+        <text x="720" y="30" text-anchor="middle" fill="#e8603c" font-size="11" font-weight="700">→ deploy</text>
+        <text x="380" y="20" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="900">main (production)</text>
+
+        <!-- Feature branches -->
+        <line x1="40"  y1="50" x2="120" y2="120" stroke="#e8603c" stroke-width="2"/>
+        <line x1="120" y1="120" x2="200" y2="120" stroke="#e8603c" stroke-width="2"/>
+        <line x1="200" y1="120" x2="250" y2="50"  stroke="#e8603c" stroke-width="2"/>
+        <circle cx="120" cy="120" r="5" fill="#e8603c"/>
+        <circle cx="160" cy="120" r="5" fill="#e8603c"/>
+        <circle cx="200" cy="120" r="5" fill="#e8603c"/>
+        <text x="160" y="145" text-anchor="middle" fill="#e8603c" font-size="11" font-weight="700">feature/role2-ai-integration</text>
+
+        <line x1="40"  y1="50"  x2="140" y2="185" stroke="#0969da" stroke-width="2"/>
+        <line x1="140" y1="185" x2="340" y2="185" stroke="#0969da" stroke-width="2"/>
+        <line x1="340" y1="185" x2="500" y2="50"  stroke="#0969da" stroke-width="2"/>
+        <circle cx="140" cy="185" r="5" fill="#0969da"/>
+        <circle cx="220" cy="185" r="5" fill="#0969da"/>
+        <circle cx="300" cy="185" r="5" fill="#0969da"/>
+        <circle cx="340" cy="185" r="5" fill="#0969da"/>
+        <text x="240" y="210" text-anchor="middle" fill="#0969da" font-size="11" font-weight="700">feature/role3-sessions-view</text>
+
+        <line x1="720" y1="50" x2="760" y2="50" stroke="#e8603c" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arr-clay)"/>
+        <text x="780" y="54" fill="#e8603c" font-size="11" font-weight="700">Netlify</text>
+      </svg>
+    </div>
+
+    <h3>The 7 branches in this repo</h3>
+    <table>
+      <thead><tr><th>Branch</th><th>Owner</th><th>Current status</th></tr></thead>
+      <tbody>
+        <tr><td><code>main</code></td><td>Everyone (via PR)</td><td><span class="badge done">Synced · cb249d7</span></td></tr>
+        <tr><td><code>feature/role1-matching-discover</code></td><td>Role 1</td><td><span class="badge done">Synced with main</span></td></tr>
+        <tr><td><code>feature/role2-ai-integration</code></td><td>Tyler (Role 2)</td><td><span class="badge done">Synced with main</span></td></tr>
+        <tr><td><code>feature/role3-sessions-view</code></td><td>Role 3</td><td><span class="badge done">Synced with main</span></td></tr>
+        <tr><td><code>feature/role4-profile</code></td><td>Role 4</td><td><span class="badge done">Synced with main</span></td></tr>
+        <tr><td><code>feature/role5-qa-code-quality</code></td><td>Role 5</td><td><span class="badge done">Synced with main</span></td></tr>
+        <tr><td><code>feature/role6-deployment-docs</code></td><td>Role 6</td><td><span class="badge done">Synced with main</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ══════════════════════  10  ══════════════════════ -->
+  <div class="section" id="s10">
+    <div class="section-header">
+      <div class="section-num">10</div>
+      <h2>Phase 2 — The Supabase Backend</h2>
+    </div>
+
+    <p>Phase 2 replaces mock data with a real database. The scaffolding is already written in <code>src/lib/services.js</code> and <code>src/hooks/hooks.jsx</code>. The <code>supabase/schema.sql</code> file defines the Postgres tables. Nothing needs to be redesigned — it just needs to be switched on.</p>
+
+    <div class="card-row">
+      <div class="card">
+        <div class="card-icon">🔑</div>
+        <div class="card-title">Auth</div>
+        <div class="card-body">Supabase handles login via Google/Apple/GitHub OAuth. <code>useAuth()</code> hook in hooks.jsx is ready.</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">🗃️</div>
+        <div class="card-title">Database</div>
+        <div class="card-body">Tables: <code>profiles</code>, <code>availability_slots</code>, <code>sessions</code>, <code>messages</code>. The <code>find_matches()</code> Postgres function runs the same scoring logic as the client.</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">⚡</div>
+        <div class="card-title">Realtime</div>
+        <div class="card-body">Supabase Realtime will power live message updates in the Messages tab via WebSocket subscriptions.</div>
+      </div>
+    </div>
+
+    <div class="callout info">
+      <span class="clabel">💡 Phase 2 is not required for the rubric</span>
+      The project guidelines say localStorage is acceptable for Phase 1. Supabase is the extension that pushes into A-range. Profile data persistence (Role 4) should use localStorage first, then optionally Supabase.
+    </div>
+  </div>
+
+  <!-- ══════════════════════  11  ══════════════════════ -->
+  <div class="section" id="s11">
+    <div class="section-header">
+      <div class="section-num">11</div>
+      <h2>What's Built vs. What's Missing</h2>
+    </div>
+
+    <div class="card-row">
+      <div class="card done">
+        <div class="card-icon">✅</div>
+        <div class="card-title">Complete</div>
+        <div class="card-body" style="line-height:2;">
+          Discover tab + matching engine<br/>
+          Profile form (controlled inputs)<br/>
+          Calendar (propose/confirm/decline)<br/>
+          ProposeModal (slot picker + court)<br/>
+          Courts SVG map<br/>
+          Messages list<br/>
+          Shared components (Avatar, ScoreRing, Header)<br/>
+          Netlify deployment (manual)<br/>
+          GitHub repo + 6 branches<br/>
+          netlify.toml + AI proxy stub
+        </div>
+      </div>
+      <div class="card wip">
+        <div class="card-icon">🔨</div>
+        <div class="card-title">In Progress / Partial</div>
+        <div class="card-body" style="line-height:2;">
+          Netlify GitHub CD (1 step left)<br/>
+          AI proxy (stub live, logic missing)<br/>
+          Profile persistence (no localStorage yet)<br/>
+          Loading + error states (no async yet)
+        </div>
+      </div>
+      <div class="card todo">
+        <div class="card-icon">❌</div>
+        <div class="card-title">Not Yet Built</div>
+        <div class="card-body" style="line-height:2;">
+          OpenAI API call in ai-brief.js<br/>
+          AIBrief display component<br/>
+          Profile input validation + errors<br/>
+          Session empty-state view<br/>
+          OPENAI_API_KEY in Netlify env<br/>
+          AI tool reflection (100–150 words)<br/>
+          Supabase connection (Phase 2)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════  12  ══════════════════════ -->
+  <div class="section" id="s12">
+    <div class="section-header">
+      <div class="section-num">12</div>
+      <h2>Rubric Gap Analysis</h2>
+    </div>
+    <p>Where we stand on each grading category. Each bar shows estimated completion.</p>
+
+    <div style="margin: 24px 0;">
+
+      <div class="progress-item">
+        <div class="progress-label">
+          <span>Working Application <small style="color:var(--muted); font-weight:400;">(20 pts)</small></span>
+          <span style="color:var(--green);">75%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:75%; background:var(--green);"></div></div>
+        <div style="font-size:12px; color:var(--muted); margin-top:4px;">Gap: Profile persistence, empty-states, input validation with error messages</div>
+      </div>
+
+      <div class="progress-item">
+        <div class="progress-label">
+          <span>AI Integration <small style="color:var(--muted); font-weight:400;">(20 pts)</small></span>
+          <span style="color:var(--clay);">20%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:20%; background:var(--clay);"></div></div>
+        <div style="font-size:12px; color:var(--muted); margin-top:4px;">Gap: The actual OpenAI call, prompt design, AIBrief component, loading + error states, API key in env</div>
+      </div>
+
+      <div class="progress-item">
+        <div class="progress-label">
+          <span>Code Quality <small style="color:var(--muted); font-weight:400;">(20 pts)</small></span>
+          <span style="color:var(--green);">85%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:85%; background:var(--green);"></div></div>
+        <div style="font-size:12px; color:var(--muted); margin-top:4px;">Gap: Loading + error states on async operations (blocked until AI call is added)</div>
+      </div>
+
+      <div class="progress-item">
+        <div class="progress-label">
+          <span>Deployment <small style="color:var(--muted); font-weight:400;">(10 pts)</small></span>
+          <span style="color:#c98a00;">80%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:80%; background:#c98a00;"></div></div>
+        <div style="font-size:12px; color:var(--muted); margin-top:4px;">Gap: Connect GitHub → Netlify for continuous deployment (1 UI step remaining)</div>
+      </div>
+
+      <div class="progress-item">
+        <div class="progress-label">
+          <span>Presentation &amp; Demo <small style="color:var(--muted); font-weight:400;">(15 pts)</small></span>
+          <span style="color:var(--muted);">0%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:0%; background:var(--muted);"></div></div>
+        <div style="font-size:12px; color:var(--muted); margin-top:4px;">Week 11. App must be complete before this can be prepared.</div>
+      </div>
+
+      <div class="progress-item">
+        <div class="progress-label">
+          <span>Peer Evaluation <small style="color:var(--muted); font-weight:400;">(10 pts)</small></span>
+          <span style="color:var(--muted);">0%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:0%; background:var(--muted);"></div></div>
+        <div style="font-size:12px; color:var(--muted); margin-top:4px;">Submitted separately by each member via Google Forms at Week 11.</div>
+      </div>
+
+      <div class="progress-item">
+        <div class="progress-label">
+          <span>AI Tool Reflection <small style="color:var(--muted); font-weight:400;">(5 pts)</small></span>
+          <span style="color:var(--red);">0%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:0%; background:var(--red);"></div></div>
+        <div style="font-size:12px; color:var(--muted); margin-top:4px;">100–150 words. Must be specific — generic reflections lose points. Role 6 drafts this.</div>
+      </div>
+
+    </div>
+
+    <div class="callout danger">
+      <span class="clabel">🚨 Critical path</span>
+      The AI Integration (20 pts) is the single biggest gap and also unblocks the Sessions view display component (Role 3). Everything else on the rubric can be polished independently — but without the OpenAI call, the app cannot demonstrate its core value proposition at the Week 8 demo.
+    </div>
+
+    <div class="callout tip">
+      <span class="clabel">✅ What puts us in A range</span>
+      The rubric extension list includes: server-side proxy (already structured), custom hooks (<code>hooks.jsx</code> is written), localStorage/Supabase persistence, and streaming AI responses. The infrastructure for all of these exists — they just need to be activated.
+    </div>
+  </div>
+
+  <hr/>
+
+  <div style="background: var(--ink); color: var(--paper); border-radius: 12px; padding: 30px; text-align: center; margin-top: 40px;">
+    <div style="font-size:28px; margin-bottom:8px;">🎾</div>
+    <div style="font-weight:900; font-size:20px; color:var(--optic); margin-bottom:8px;">Rally · Team 3 · MIST 7571E</div>
+    <div style="opacity:.65; font-size:14px; line-height:2;">
+      Live: https://rally-team3-mist7571e.netlify.app<br/>
+      Repo: https://github.com/tylerhubb15/mist7571e-group3-rally<br/>
+      Report generated: July 2026
+    </div>
+  </div>
+
+</div><!-- /page -->
+</body>
+</html>
