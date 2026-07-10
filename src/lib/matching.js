@@ -1,30 +1,42 @@
 // Rally matching engine — weighted compatibility scoring.
 // Weights: skill 35%, availability overlap 30%, distance 20%, intent 15%.
-// The same formula lives server-side in supabase/schema.sql (find_matches).
+// The real scoring runs server-side in supabase/schema.sql (find_matches) —
+// this file now just recomputes the same per-factor breakdown client-side
+// for the Discover UI, since the RPC only returns the final match_score.
 
 import { INTENTS } from "../data/mockData.js";
 
 const intentRank = (intent) => INTENTS.indexOf(intent);
 
-export function scoreOf(me, player) {
-  const skill = Math.max(0, 1 - Math.abs(me.ntrp - player.ntrp) / 1.5);
-  const dist = Math.max(0, 1 - player.dist / me.radius);
-  const overlap = player.slots.filter((s) => me.slots.includes(s));
-  const avail = me.slots.length
-    ? overlap.length / Math.min(me.slots.length, player.slots.length)
-    : 0;
-  const gap = Math.abs(intentRank(me.intent) - intentRank(player.intent));
-  const intent = gap === 0 ? 1 : gap === 1 ? 0.6 : 0.25;
-  const total = skill * 0.35 + avail * 0.3 + dist * 0.2 + intent * 0.15;
+/**
+ * scoreParts(me, candidate)
+ * `me` — the current user's profile row (ntrp, radius_mi, slots, intent).
+ * `candidate` — a row from find_matches() (ntrp, distance_mi, shared_slots, intent).
+ * Returns the same 0–100 breakdown the server used to compute match_score —
+ * display only, the ranked total always comes from the server.
+ */
+export function scoreParts(me, candidate) {
+  const skill = Math.max(0, 1 - Math.abs(me.ntrp - candidate.ntrp) / 1.5);
+  const sharedCount = candidate.shared_slots?.length || 0;
+  const avail = me.slots?.length ? sharedCount / me.slots.length : 0;
 
+  // Best pairwise match across every (my intent, their intent) combo —
+  // mirrors the same logic in find_matches() server-side.
+  let intent = 0;
+  for (const mi of me.intent || []) {
+    for (const ti of candidate.intent || []) {
+      const gap = Math.abs(intentRank(mi) - intentRank(ti));
+      const pair = gap === 0 ? 1 : gap === 1 ? 0.6 : 0.25;
+      if (pair > intent) intent = pair;
+    }
+  }
+
+  // Distance isn't shown as a normalized percentage — it's shown as a
+  // real mi figure in the card header (see Discover.jsx) since a raw
+  // distance is more meaningful to a player than an abstracted score.
   return {
-    total: Math.round(total * 100),
-    parts: {
-      Skill: Math.round(skill * 100),
-      Avail: Math.round(avail * 100),
-      Dist: Math.round(dist * 100),
-      Intent: Math.round(intent * 100),
-    },
-    overlap,
+    Skill: Math.round(skill * 100),
+    Avail: Math.round(avail * 100),
+    Intent: Math.round(intent * 100),
   };
 }

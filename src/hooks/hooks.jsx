@@ -10,20 +10,20 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { auth, profiles, matching, sessions, messages } from "../lib/services.js";
+import { auth, profiles, matching, sessions, matchResults, messages, supabase } from "../lib/services.js";
 
 // ─────────────────────────────  AUTH  ────────────────────────────
 
 /**
  * useAuth()
- * Returns { user, profile, loading, signIn, signOut }
+ * Returns { user, loading, signIn, signUp, signOut }
  *
- * `user`    — Supabase auth user (id, email, etc.)
- * `profile` — profiles row (ntrp, slots, etc.)
+ * `user` — Supabase auth user (id, email, etc.). For the profile row
+ * (ntrp, slots, etc.) use useProfile(user.id) — keeps a single
+ * React-Query-cached source of truth instead of a second ad-hoc fetch.
  */
 export function useAuth() {
   const [user, setUser]       = useState(null);
-  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const qc = useQueryClient();
 
@@ -42,17 +42,12 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, [qc]);
 
-  // Fetch profile whenever user id changes
-  useEffect(() => {
-    if (!user) { setProfile(null); return; }
-    profiles.get(user.id).then(setProfile).catch(console.error);
-  }, [user?.id]);
-
   return {
     user,
-    profile,
     loading,
     signIn: (provider) => auth.signInWithProvider(provider),
+    signUpWithEmail: auth.signUpWithEmail,
+    signInWithEmail: auth.signInWithEmail,
     signOut: auth.signOut,
   };
 }
@@ -84,7 +79,24 @@ export function useProfile(userId) {
     onSuccess: () => qc.invalidateQueries({ queryKey: key }),
   });
 
-  return { ...query, update: update.mutate };
+  return {
+    ...query,
+    update: update.mutate,
+    updating: update.isPending,
+    updateError: update.error,
+  };
+}
+
+/**
+ * useAllProfiles()
+ * Lightweight list of every player — used by the courts map to plot pins.
+ */
+export function useAllProfiles() {
+  return useQuery({
+    queryKey: ["profiles", "all"],
+    queryFn: profiles.listAll,
+    staleTime: 1000 * 60,
+  });
 }
 
 // ──────────────────────────  MATCHING  ───────────────────────────
@@ -142,8 +154,57 @@ export function useSessions(userId) {
 
   return {
     ...query,
-    propose:   propose.mutate,
-    setStatus: setStatus.mutate,
+    propose:      propose.mutate,
+    proposeAsync: propose.mutateAsync,
+    proposing:    propose.isPending,
+    setStatus:    setStatus.mutate,
+  };
+}
+
+// ──────────────────────────  MATCH RESULTS  ──────────────────────
+
+/**
+ * useMatchResults(userId)
+ * Every logged result the current user has been part of (RLS-scoped —
+ * no filter needed client-side beyond passing userId to resolve
+ * `opponent`), plus `report` (session-linked), `logManual` (hand-entered
+ * history), and `update` (edit one you reported) mutations.
+ */
+export function useMatchResults(userId) {
+  const qc  = useQueryClient();
+  const key = ["matchResults", userId];
+
+  const query = useQuery({
+    queryKey: key,
+    queryFn:  () => matchResults.listForMe(userId),
+    enabled:  !!userId,
+  });
+
+  const report = useMutation({
+    mutationFn: (args) => matchResults.report(args),
+    onSuccess:  () => qc.invalidateQueries({ queryKey: key }),
+  });
+
+  const logManual = useMutation({
+    mutationFn: (args) => matchResults.logManual(args),
+    onSuccess:  () => qc.invalidateQueries({ queryKey: key }),
+  });
+
+  const update = useMutation({
+    mutationFn: ({ id, fields }) => matchResults.update(id, fields),
+    onSuccess:  () => qc.invalidateQueries({ queryKey: key }),
+  });
+
+  return {
+    ...query,
+    report:         report.mutate,
+    reportAsync:    report.mutateAsync,
+    reporting:      report.isPending,
+    logManual:      logManual.mutate,
+    logManualAsync: logManual.mutateAsync,
+    loggingManual:  logManual.isPending,
+    updateAsync:    update.mutateAsync,
+    updating:       update.isPending,
   };
 }
 
@@ -198,13 +259,11 @@ export function useConversations(userId) {
     queryKey: ["conversations", userId],
     queryFn: async () => {
       // Fetch all messages where the user is involved
-      const { data, error } = await import("../lib/services.js").then(({ supabase }) =>
-        supabase
-          .from("messages")
-          .select("*, sender:profiles!messages_sender_id_fkey(id,name,avatar_url,ntrp), recipient:profiles!messages_recipient_id_fkey(id,name,avatar_url,ntrp)")
-          .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
-          .order("created_at", { ascending: false })
-      );
+      const { data, error } = await supabase
+        .from("messages")
+        .select("*, sender:profiles!messages_sender_id_fkey(id,name,avatar_url,ntrp), recipient:profiles!messages_recipient_id_fkey(id,name,avatar_url,ntrp)")
+        .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
+        .order("created_at", { ascending: false });
       if (error) throw error;
 
       // Group by conversation partner, keep only the latest message per thread

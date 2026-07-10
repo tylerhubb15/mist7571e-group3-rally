@@ -1,5 +1,5 @@
 import React from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Loader2, AlertTriangle } from "lucide-react";
 
 export const ScoreRing = ({ value, size = 58 }) => {
   const col = value >= 75 ? "var(--optic)" : value >= 50 ? "#e9d34a" : "var(--clay)";
@@ -30,6 +30,26 @@ export const Header = ({ eyebrow, title, sub }) => (
     {sub ? <p style={{ fontSize: 13, color: "var(--muted)", margin: 0, fontWeight: 600 }}>{sub}</p> : null}
   </div>
 );
+
+export const Loading = ({ label = "Loading…" }) => (
+  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+    padding: 28, color: "var(--muted)", fontWeight: 600, fontSize: 13 }}>
+    <Loader2 size={16} className="spin" />
+    {label}
+  </div>
+);
+
+export const ErrorNote = ({ error, label }) => {
+  if (!error) return null;
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 7, padding: "10px 12px",
+      borderRadius: 10, border: "1.5px solid var(--clay)", background: "rgba(196,90,60,.08)",
+      color: "var(--clay)", fontWeight: 600, fontSize: 12.5, marginBottom: 12 }}>
+      <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+      <span>{label || error.message || "Something went wrong."}</span>
+    </div>
+  );
+};
 
 export const Field = ({ label, children }) => (
   <div className="card" style={{ padding: 16, marginBottom: 14 }}>

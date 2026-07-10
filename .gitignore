@@ -8,3 +8,6 @@ dist
 
 # Local Netlify folder
 .netlify
+
+.claude/settings.local.json
+summary 6-10-2026.rtf

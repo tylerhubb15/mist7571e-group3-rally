@@ -1,28 +1,91 @@
 import React, { useState } from "react";
 import {
-  Search, Calendar as CalIcon, MessageCircle, UserCircle, MapPin, Activity, Map as MapIcon,
+  Search, Calendar as CalIcon, MessageCircle, UserCircle, MapPin, Activity, Map as MapIcon, LogOut,
 } from "lucide-react";
-import { ME, SEED_SESSIONS } from "./data/mockData.js";
+import { useAuth, useProfile, useSessions, useMatchResults } from "./hooks/hooks.jsx";
+import Auth from "./components/Auth.jsx";
 import Discover from "./components/Discover.jsx";
 import CourtsMap from "./components/CourtsMap.jsx";
 import Messages from "./components/Messages.jsx";
 import CalendarView from "./components/CalendarView.jsx";
 import Profile from "./components/Profile.jsx";
 import ProposeModal from "./components/ProposeModal.jsx";
+import MatchHistoryModal from "./components/MatchHistoryModal.jsx";
+import { Loading, ErrorNote } from "./components/Shared.jsx";
 
 export default function App() {
-  const [tab, setTab] = useState("discover");
-  const [me, setMe] = useState(ME);
-  const [modal, setModal] = useState(null);
-  const [sessions, setSessions] = useState(SEED_SESSIONS);
+  const { user, loading: authLoading, signOut } = useAuth();
 
-  const propose = ({ player, slot, court }) => {
-    setSessions((s) => [...s, { id: Date.now(), player, slot, court, status: "pending" }]);
-    setModal(null);
-    setTab("calendar");
+  if (authLoading) {
+    return <div className="rally court-bg" style={{ minHeight: "100vh" }}><Loading label="Loading Rally…" /></div>;
+  }
+  if (!user) {
+    return <Auth />;
+  }
+  return <AuthedApp user={user} signOut={signOut} />;
+}
+
+function AuthedApp({ user, signOut }) {
+  const profileQuery = useProfile(user.id);
+  const { data: profile, isLoading: profileLoading, error: profileError, refetch, update, updating, updateError } = profileQuery;
+  const sessionsHook = useSessions(user.id);
+  const matchResultsHook = useMatchResults(user.id);
+
+  const [tab, setTab] = useState("discover");
+  const [modal, setModal] = useState(null);
+  const [proposeError, setProposeError] = useState(null);
+  const [activeThread, setActiveThread] = useState(null); // { id, name, ntrp } | null
+  const [matchModal, setMatchModal] = useState(null); // { session } | { match } | {} (new manual) | null
+  const [matchError, setMatchError] = useState(null);
+
+  const openThread = (partner) => { setActiveThread(partner); setTab("messages"); };
+
+  if (profileLoading) {
+    return <div className="rally court-bg" style={{ minHeight: "100vh" }}><Loading label="Setting up your profile…" /></div>;
+  }
+  if (profileError || !profile) {
+    return (
+      <div className="rally court-bg" style={{ minHeight: "100vh", display: "flex", alignItems: "center",
+        justifyContent: "center", padding: 24 }}>
+        <div className="card" style={{ padding: 24, maxWidth: 380 }}>
+          <ErrorNote error={profileError || { message: "No profile row found for this account." }}
+            label={profileError ? `Couldn't load your profile: ${profileError.message}` : undefined} />
+          <button className="btn btn-o" style={{ width: "100%", justifyContent: "center" }} onClick={() => refetch()}>
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const doPropose = async (payload) => {
+    setProposeError(null);
+    try {
+      await sessionsHook.proposeAsync(payload);
+      setModal(null);
+      setTab("calendar");
+    } catch (err) {
+      setProposeError(err);
+    }
   };
 
-  const pendingCount = sessions.filter((s) => s.status === "incoming").length;
+  const doSaveMatch = async (payload) => {
+    setMatchError(null);
+    try {
+      if (payload.id) {
+        await matchResultsHook.updateAsync(payload);
+      } else if (payload.sessionId) {
+        await matchResultsHook.reportAsync({ reportedBy: user.id, ...payload });
+      } else {
+        await matchResultsHook.logManualAsync({ reportedBy: user.id, ...payload });
+      }
+      setMatchModal(null);
+    } catch (err) {
+      setMatchError(err);
+    }
+  };
+
+  const pendingCount = (sessionsHook.data || []).filter((s) => s.uiStatus === "incoming").length;
 
   const NAV = [
     { k: "discover", label: "Discover", Icon: Search },
@@ -44,14 +107,29 @@ export default function App() {
         <span style={{ color: "var(--optic)", fontSize: 11, fontWeight: 700, marginTop: 5 }}>find your hit</span>
         <span style={{ marginLeft: "auto", color: "var(--paper)", fontSize: 11, fontWeight: 600, opacity: 0.65,
           display: "flex", alignItems: "center", gap: 4 }}><MapPin size={12} />Athens, GA</span>
+        <button className="btn btn-ghost" style={{ padding: 6, color: "var(--paper)" }}
+          title="Sign out" onClick={signOut}>
+          <LogOut size={15} />
+        </button>
       </div>
 
       <div style={{ maxWidth: 520, margin: "0 auto", padding: "22px 16px 110px" }}>
-        {tab === "discover" ? <Discover me={me} onPropose={(p) => setModal(p)} /> : null}
-        {tab === "courts"   ? <CourtsMap /> : null}
-        {tab === "messages" ? <Messages /> : null}
-        {tab === "calendar" ? <CalendarView sessions={sessions} setSessions={setSessions} /> : null}
-        {tab === "profile"  ? <Profile me={me} setMe={setMe} /> : null}
+        {tab === "discover" ? <Discover me={profile} onPropose={(p) => setModal(p)} onMessage={openThread} /> : null}
+        {tab === "courts"   ? <CourtsMap me={profile} update={update} /> : null}
+        {tab === "messages" ? (
+          <Messages myId={user.id} active={activeThread} onOpenThread={setActiveThread}
+            onCloseThread={() => setActiveThread(null)} />
+        ) : null}
+        {tab === "calendar" ? (
+          <CalendarView sessions={sessionsHook.data} isLoading={sessionsHook.isLoading}
+            error={sessionsHook.error} setStatus={sessionsHook.setStatus} onMessage={openThread}
+            myId={user.id} results={matchResultsHook.data} onLogResult={(s) => setMatchModal({ session: s })} />
+        ) : null}
+        {tab === "profile"  ? (
+          <Profile me={profile} update={update} updating={updating} updateError={updateError}
+            matchResults={matchResultsHook.data}
+            onAddMatch={() => setMatchModal({})} onEditMatch={(m) => setMatchModal({ match: m })} />
+        ) : null}
       </div>
 
       <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", zIndex: 30,
@@ -72,7 +150,19 @@ export default function App() {
         ))}
       </div>
 
-      {modal ? <ProposeModal player={modal} me={me} onClose={() => setModal(null)} onConfirm={propose} /> : null}
+      {modal ? (
+        <ProposeModal player={modal} me={profile} onClose={() => { setModal(null); setProposeError(null); }}
+          onConfirm={doPropose} sending={sessionsHook.proposing} error={proposeError}
+          onGoToProfile={() => { setModal(null); setTab("profile"); }} />
+      ) : null}
+
+      {matchModal ? (
+        <MatchHistoryModal me={profile} session={matchModal.session} match={matchModal.match}
+          onClose={() => { setMatchModal(null); setMatchError(null); }}
+          onConfirm={doSaveMatch}
+          sending={matchResultsHook.reporting || matchResultsHook.loggingManual || matchResultsHook.updating}
+          error={matchError} />
+      ) : null}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import React from "react";
-import { Calendar as CalIcon, Check, Clock, MapPin, X } from "lucide-react";
-import { Avatar, Header } from "./Shared.jsx";
+import { Calendar as CalIcon, Check, Clock, MapPin, X, MessageCircle, Trophy } from "lucide-react";
+import { Avatar, Header, Loading, ErrorNote } from "./Shared.jsx";
 
 const GROUPS = [
   { key: "incoming",  label: "Wants to hit with you", color: "var(--optic-d)" },
@@ -8,15 +8,19 @@ const GROUPS = [
   { key: "confirmed", label: "Confirmed",             color: "var(--optic)" },
 ];
 
-export default function CalendarView({ sessions, setSessions }) {
-  const act = (id, status) => setSessions((s) => s.map((x) => (x.id === id ? { ...x, status } : x)));
-  const hasAny = sessions.some((s) => ["pending", "incoming", "confirmed"].includes(s.status));
+export default function CalendarView({ sessions, isLoading, error, setStatus, onMessage, myId, results, onLogResult }) {
+  if (isLoading) return <Loading label="Loading your sessions…" />;
+
+  const list = sessions || [];
+  const resultFor = (sessionId) => (results || []).find((r) => r.session_id === sessionId);
+  const hasAny = list.some((s) => ["pending", "incoming", "confirmed"].includes(s.uiStatus));
 
   return (
     <div>
       <Header eyebrow="Booking calendar" title="Your sessions" sub="Propose, confirm, and lock in court time." />
+      <ErrorNote error={error} label="Couldn't load sessions. Try again in a moment." />
       {GROUPS.map((g) => {
-        const items = sessions.filter((s) => s.status === g.key);
+        const items = list.filter((s) => s.uiStatus === g.key);
         if (!items.length) return null;
         return (
           <div key={g.key} style={{ marginBottom: 20 }}>
@@ -26,44 +30,84 @@ export default function CalendarView({ sessions, setSessions }) {
               <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 700 }}>{items.length}</span>
             </div>
             <div style={{ display: "grid", gap: 11 }}>
-              {items.map((s) => (
-                <div key={s.id} className="card rise" style={{ padding: 15 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <Avatar name={s.player.name} />
-                    <div style={{ flex: 1 }}>
-                      <div className="disp" style={{ fontSize: 16, fontWeight: 800 }}>{s.player.name}</div>
-                      <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600, display: "flex", gap: 10, marginTop: 2 }}>
-                        <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Clock size={12} />{s.slot.replace("-", " ")}</span>
-                        <span style={{ display: "flex", alignItems: "center", gap: 3 }}><MapPin size={12} />{s.court}</span>
+              {items.map((s) => {
+                const otherTeam = s.otherTeam || [];
+                const primary = otherTeam[0] || {};
+                const otherNames = otherTeam.map((p) => p.name).join(" & ");
+                const myPartner = (s.myTeam || []).find((p) => p.id !== myId);
+                const slot = `${s.slot_day}-${s.slot_period}`;
+                return (
+                  <div key={s.id} className="card rise" style={{ padding: 15 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <Avatar name={primary.name || "?"} />
+                      <div style={{ flex: 1 }}>
+                        <div className="disp" style={{ fontSize: 16, fontWeight: 800, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                          {otherNames || "Unknown"}
+                          {s.format === "Doubles" ? <span className="tag" style={{ background: "var(--paper2)", fontSize: 9 }}>Doubles</span> : null}
+                        </div>
+                        <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600, display: "flex", gap: 10, marginTop: 2, flexWrap: "wrap" }}>
+                          <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Clock size={12} />{slot.replace("-", " ")}</span>
+                          <span style={{ display: "flex", alignItems: "center", gap: 3 }}><MapPin size={12} />{s.court}</span>
+                          {myPartner ? <span>with {myPartner.name.split(" ")[0]}</span> : null}
+                        </div>
                       </div>
+                      {otherTeam.length === 1 ? <span className="tag" style={{ background: g.color }}>{primary.ntrp}</span> : null}
+                      <button className="btn btn-ghost" style={{ padding: 7 }} title={`Message ${primary.name}`}
+                        onClick={() => onMessage({ id: primary.id, name: primary.name, ntrp: primary.ntrp })}>
+                        <MessageCircle size={15} />
+                      </button>
                     </div>
-                    <span className="tag" style={{ background: g.color }}>{s.player.ntrp}</span>
+                    {g.key === "incoming" ? (
+                      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                        <button className="btn btn-y" style={{ flex: 1, justifyContent: "center" }}
+                          onClick={() => setStatus({ sessionId: s.id, status: "confirmed" })}>
+                          <Check size={14} />Accept
+                        </button>
+                        <button className="btn btn-ghost" style={{ justifyContent: "center" }}
+                          onClick={() => setStatus({ sessionId: s.id, status: "declined" })}>
+                          <X size={15} />
+                        </button>
+                      </div>
+                    ) : null}
+                    {g.key === "pending" ? (
+                      <div style={{ marginTop: 10, fontSize: 13, color: "var(--muted)", fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+                        <Clock size={13} /> Waiting on {otherNames.split(" ")[0]}…
+                      </div>
+                    ) : null}
+                    {g.key === "confirmed" ? (
+                      <div style={{ marginTop: 10 }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink2)", display: "flex", alignItems: "center", gap: 5 }}>
+                            <Check size={13} /> Locked in — see you out there
+                          </span>
+                          <button className="btn btn-ghost" style={{ padding: "5px 11px", fontSize: 13 }}
+                            onClick={() => setStatus({ sessionId: s.id, status: "cancelled" })}>Cancel</button>
+                        </div>
+                        {(() => {
+                          const result = resultFor(s.id);
+                          const scoreText = result
+                            ? [result.set1_score, result.set2_score, result.set3_score].filter(Boolean).join(", ")
+                            : "";
+                          const outcomeLabel = result?.viewerOutcome === "won" ? "You won"
+                            : result?.viewerOutcome === "lost" ? "You lost" : "No winner logged";
+                          return result ? (
+                            <div style={{ marginTop: 8, fontSize: 13, fontWeight: 600, color: "var(--muted)", display: "flex", alignItems: "center", gap: 5 }}>
+                              <Trophy size={13} />
+                              {outcomeLabel}
+                              {scoreText ? ` · ${scoreText}` : ""}
+                            </div>
+                          ) : (
+                            <button className="btn btn-ghost" style={{ marginTop: 8, border: "1.5px solid var(--ink)", fontSize: 13, padding: "6px 11px" }}
+                              onClick={() => onLogResult(s)}>
+                              <Trophy size={13} /> Log result
+                            </button>
+                          );
+                        })()}
+                      </div>
+                    ) : null}
                   </div>
-                  {g.key === "incoming" ? (
-                    <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                      <button className="btn btn-y" style={{ flex: 1, justifyContent: "center" }} onClick={() => act(s.id, "confirmed")}>
-                        <Check size={14} />Accept
-                      </button>
-                      <button className="btn btn-ghost" style={{ justifyContent: "center" }} onClick={() => act(s.id, "declined")}>
-                        <X size={15} />
-                      </button>
-                    </div>
-                  ) : null}
-                  {g.key === "pending" ? (
-                    <div style={{ marginTop: 10, fontSize: 13, color: "var(--muted)", fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
-                      <Clock size={13} /> Waiting on {s.player.name.split(" ")[0]}…
-                    </div>
-                  ) : null}
-                  {g.key === "confirmed" ? (
-                    <div style={{ marginTop: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink2)", display: "flex", alignItems: "center", gap: 5 }}>
-                        <Check size={13} /> Locked in — see you out there
-                      </span>
-                      <button className="btn btn-ghost" style={{ padding: "5px 11px", fontSize: 13 }} onClick={() => act(s.id, "cancelled")}>Cancel</button>
-                    </div>
-                  ) : null}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         );

@@ -19,8 +19,10 @@ body { margin: 0; }
 }
 @keyframes rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
 @keyframes pop  { 0% { opacity: 0; transform: scale(.88); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes spin { to { transform: rotate(360deg); } }
 .rise { animation: rise .46s cubic-bezier(.2,.7,.2,1) both; }
 .pop  { animation: pop .3s cubic-bezier(.2,.9,.3,1.2) both; }
+.spin { animation: spin .8s linear infinite; }
 .card {
   background: #fff; border: 1.5px solid var(--ink); border-radius: 18px;
   box-shadow: 4px 5px 0 var(--ink); transition: transform .18s, box-shadow .18s;
@@ -38,6 +40,7 @@ body { margin: 0; }
   display: inline-flex; align-items: center; gap: 7px; font-size: 14px;
 }
 .btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: .5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
 .btn-y { background: var(--optic); box-shadow: 2px 3px 0 var(--ink); }
 .btn-y:hover { box-shadow: 3px 4px 0 var(--ink); transform: translate(-1px,-1px); }
 .btn-o { background: var(--ink); color: var(--paper); box-shadow: 2px 3px 0 var(--clay); }
