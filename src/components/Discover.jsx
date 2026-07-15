@@ -1,5 +1,52 @@
 import React, { useState } from "react";
-import { MapPin, Target, ChevronRight, Zap, MessageCircle } from "lucide-react";
+import { MapPin, Target, ChevronRight, Zap, MessageCircle, Sparkles } from "lucide-react";
+
+function PlayerBrief({ player }) {
+  const [state, setState] = useState("idle");
+  const [brief, setBrief] = useState("");
+
+  async function fetch_brief() {
+    setState("loading");
+    try {
+      const res = await fetch("/.netlify/functions/ai-brief", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "matchup",
+          player: { name: player.name, ntrp: player.ntrp, format: player.intent?.includes("Doubles") ? "Doubles" : "Singles" },
+          session: { day: "upcoming", period: "session", court: player.home_court || "your court" },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Request failed");
+      setBrief(data.brief);
+      setState("done");
+    } catch (err) {
+      setBrief(err.message || "Something went wrong.");
+      setState("error");
+    }
+  }
+
+  if (state === "idle") return (
+    <button className="btn btn-ghost" style={{ border: "1.5px solid var(--ink)" }} onClick={fetch_brief}>
+      <Sparkles size={14} />AI Brief
+    </button>
+  );
+  if (state === "loading") return (
+    <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+      <Sparkles size={13} />Generating…
+    </span>
+  );
+  return (
+    <div style={{ marginTop: 10, background: "var(--paper2)", borderRadius: 8, padding: "10px 12px", border: "1.5px solid var(--ink)" }}>
+      <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", marginBottom: 6, display: "flex", alignItems: "center", gap: 5 }}>
+        <Sparkles size={11} />AI Match Prep · {player.name}
+      </div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink2)", whiteSpace: "pre-line", lineHeight: 1.65 }}>{brief}</div>
+      <button className="btn btn-ghost" style={{ marginTop: 8, fontSize: 11, padding: "4px 8px" }} onClick={() => setState("idle")}>Dismiss</button>
+    </div>
+  );
+}
 import { useMatches } from "../hooks/hooks.jsx";
 import { scoreParts } from "../lib/matching.js";
 import { ScoreRing, Avatar, Header, Loading, ErrorNote } from "./Shared.jsx";
@@ -73,12 +120,13 @@ export default function Discover({ me, onPropose, onMessage }) {
                       ? p.shared_slots.map((s) => <span key={s} className="slot match">{s.replace("-", " ")}</span>)
                       : <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 600 }}>No overlap — message them to find a time.</span>}
                   </div>
-                  <div style={{ display: "flex", gap: 8 }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <button className="btn btn-ghost" style={{ border: "1.5px solid var(--ink)" }}
                       onClick={() => onMessage({ id: p.profile_id, name: p.name, ntrp: p.ntrp })}>
                       <MessageCircle size={14} />Message
                     </button>
                     <button className="btn btn-y" onClick={() => onPropose(p)}><Zap size={14} />Propose hit</button>
+                    <PlayerBrief player={p} />
                   </div>
                 </div>
               ) : null}

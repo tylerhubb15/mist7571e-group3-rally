@@ -1,324 +1,132 @@
-import React, { useState } from "react";
-import { Sparkles } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { Sparkles, Send } from "lucide-react";
 import { Header } from "./Shared.jsx";
 
-const NTRP_LEVELS = ["2.0", "2.5", "3.0", "3.5", "4.0", "4.5", "5.0", "5.5"];
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const PERIODS = ["AM", "PM", "EVE"];
-const FORMATS = ["Singles", "Doubles"];
+const SUGGESTIONS = [
+  "How do I improve my second serve?",
+  "Tips for playing against a baseliner",
+  "How should I approach a 4.0 player?",
+  "What's the best way to finish a point at net?",
+];
 
 export default function AICoach({ me }) {
-  const [form, setForm] = useState({
-    opponentName: "",
-    opponentNtrp: "3.5",
-    format: "Singles",
-    day: "Sat",
-    period: "AM",
-    court: "",
-  });
-  const [state, setState] = useState("idle"); // idle | loading | done | error
-  const [brief, setBrief] = useState("");
-  const [errorMsg, setErrorMsg] = useState("");
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const bottomRef = useRef(null);
 
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setState("loading");
-    setBrief("");
-    setErrorMsg("");
+  async function send(text) {
+    const question = (text || input).trim();
+    if (!question) return;
+    setInput("");
+    const next = [...messages, { role: "user", content: question }];
+    setMessages(next);
+    setLoading(true);
     try {
       const res = await fetch("/.netlify/functions/ai-brief", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          player: {
-            name: form.opponentName || "your opponent",
-            ntrp: form.opponentNtrp,
-            format: form.format,
-          },
-          session: {
-            day: form.day,
-            period: form.period,
-            court: form.court || "your court",
-          },
+          mode: "chat",
+          message: question,
+          history: messages,
           me: me ? { ntrp: me.ntrp } : undefined,
         }),
       });
       const data = await res.json();
-      if (!res.ok || data.error)
-        throw new Error(data.error || "Request failed");
-      setBrief(data.brief);
-      setState("done");
+      if (!res.ok || data.error) throw new Error(data.error || "Request failed");
+      setMessages([...next, { role: "coach", content: data.brief }]);
     } catch (err) {
-      setErrorMsg(err.message || "Something went wrong. Try again.");
-      setState("error");
+      setMessages([...next, { role: "coach", content: `Sorry, something went wrong: ${err.message}` }]);
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
-    <div>
-      <Header
-        eyebrow="AI Coach"
-        title="Pre-match brief"
-        sub="Enter your opponent's details and get AI-powered tactical advice before you play."
-      />
+    <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 180px)", minHeight: 400 }}>
+      <Header eyebrow="AI Coach" title="Ask your coach" sub="Get personalised tips to level up your game." />
 
-      <form onSubmit={handleSubmit} style={{ display: "grid", gap: 14 }}>
-        <div className="card" style={{ padding: 16, display: "grid", gap: 14 }}>
+      {/* Chat messages */}
+      <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, paddingBottom: 8 }}>
+        {messages.length === 0 ? (
           <div>
-            <label
-              className="disp"
-              style={{
-                fontSize: 12,
-                fontWeight: 800,
-                textTransform: "uppercase",
-                letterSpacing: ".04em",
-                display: "block",
-                marginBottom: 6,
-              }}
-            >
-              Opponent name{" "}
-              <span style={{ color: "var(--muted)", fontWeight: 600 }}>
-                (optional)
-              </span>
-            </label>
-            <input
-              className="input"
-              type="text"
-              placeholder="e.g. Marcus"
-              value={form.opponentName}
-              onChange={(e) => set("opponentName", e.target.value)}
-              maxLength={40}
-              style={{ width: "100%" }}
-            />
-          </div>
-
-          <div
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}
-          >
-            <div>
-              <label
-                className="disp"
-                style={{
-                  fontSize: 12,
-                  fontWeight: 800,
-                  textTransform: "uppercase",
-                  letterSpacing: ".04em",
-                  display: "block",
-                  marginBottom: 6,
-                }}
-              >
-                Opponent NTRP
-              </label>
-              <select
-                className="input"
-                value={form.opponentNtrp}
-                onChange={(e) => set("opponentNtrp", e.target.value)}
-                style={{ width: "100%" }}
-              >
-                {NTRP_LEVELS.map((l) => (
-                  <option key={l}>{l}</option>
-                ))}
-              </select>
+            <div className="card" style={{ padding: 16, textAlign: "center", marginBottom: 16 }}>
+              <Sparkles size={28} style={{ margin: "0 auto 8px", display: "block", color: "var(--optic)" }} />
+              <div className="disp" style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>Your AI tennis coach</div>
+              <div style={{ fontSize: 13, color: "var(--muted)", fontWeight: 600 }}>
+                Ask anything — technique, tactics, match prep, or how to beat a specific style.
+              </div>
             </div>
-            <div>
-              <label
-                className="disp"
-                style={{
-                  fontSize: 12,
-                  fontWeight: 800,
-                  textTransform: "uppercase",
-                  letterSpacing: ".04em",
-                  display: "block",
-                  marginBottom: 6,
-                }}
-              >
-                Format
-              </label>
-              <select
-                className="input"
-                value={form.format}
-                onChange={(e) => set("format", e.target.value)}
-                style={{ width: "100%" }}
-              >
-                {FORMATS.map((f) => (
-                  <option key={f}>{f}</option>
-                ))}
-              </select>
+            <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", color: "var(--muted)", marginBottom: 8 }}>
+              Try asking
+            </div>
+            <div style={{ display: "grid", gap: 7 }}>
+              {SUGGESTIONS.map((s) => (
+                <button key={s} className="btn btn-ghost" style={{ justifyContent: "flex-start", fontSize: 13, textAlign: "left", border: "1.5px solid var(--ink)" }}
+                  onClick={() => send(s)}>
+                  {s}
+                </button>
+              ))}
             </div>
           </div>
+        ) : null}
 
-          <div
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}
-          >
-            <div>
-              <label
-                className="disp"
-                style={{
-                  fontSize: 12,
-                  fontWeight: 800,
-                  textTransform: "uppercase",
-                  letterSpacing: ".04em",
-                  display: "block",
-                  marginBottom: 6,
-                }}
-              >
-                Day
-              </label>
-              <select
-                className="input"
-                value={form.day}
-                onChange={(e) => set("day", e.target.value)}
-                style={{ width: "100%" }}
-              >
-                {DAYS.map((d) => (
-                  <option key={d}>{d}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label
-                className="disp"
-                style={{
-                  fontSize: 12,
-                  fontWeight: 800,
-                  textTransform: "uppercase",
-                  letterSpacing: ".04em",
-                  display: "block",
-                  marginBottom: 6,
-                }}
-              >
-                Time
-              </label>
-              <select
-                className="input"
-                value={form.period}
-                onChange={(e) => set("period", e.target.value)}
-                style={{ width: "100%" }}
-              >
-                {PERIODS.map((p) => (
-                  <option key={p}>{p}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label
-              className="disp"
-              style={{
-                fontSize: 12,
-                fontWeight: 800,
-                textTransform: "uppercase",
-                letterSpacing: ".04em",
-                display: "block",
-                marginBottom: 6,
-              }}
-            >
-              Court{" "}
-              <span style={{ color: "var(--muted)", fontWeight: 600 }}>
-                (optional)
-              </span>
-            </label>
-            <input
-              className="input"
-              type="text"
-              placeholder="e.g. Bishop Park"
-              value={form.court}
-              onChange={(e) => set("court", e.target.value)}
-              maxLength={60}
-              style={{ width: "100%" }}
-            />
-          </div>
-        </div>
-
-        <button
-          type="submit"
-          className="btn btn-o"
-          disabled={state === "loading"}
-          style={{
-            justifyContent: "center",
-            padding: "13px 0",
-            fontSize: 15,
-            fontWeight: 800,
-          }}
-        >
-          <Sparkles size={16} />
-          {state === "loading" ? "Generating brief…" : "Get AI Brief"}
-        </button>
-      </form>
-
-      {state === "done" && brief ? (
-        <div
-          className="card"
-          style={{
-            marginTop: 18,
-            padding: 18,
-            border: "2px solid var(--optic)",
-          }}
-        >
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 800,
-              textTransform: "uppercase",
-              letterSpacing: ".04em",
-              marginBottom: 10,
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            <Sparkles size={13} /> AI Match Prep
-            {form.opponentName ? (
-              <span style={{ color: "var(--muted)", fontWeight: 600 }}>
-                · {form.opponentName}
-              </span>
-            ) : null}
-          </div>
-          <div
-            style={{
+        {messages.map((m, i) => (
+          <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
+            <div style={{
+              maxWidth: "82%",
+              padding: "10px 13px",
+              borderRadius: m.role === "user" ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
+              background: m.role === "user" ? "var(--ink)" : "var(--paper2)",
+              color: m.role === "user" ? "var(--paper)" : "var(--ink2)",
               fontSize: 14,
               fontWeight: 600,
-              color: "var(--ink2)",
-              whiteSpace: "pre-line",
-              lineHeight: 1.75,
-            }}
-          >
-            {brief}
+              lineHeight: 1.6,
+              border: m.role === "coach" ? "1.5px solid var(--ink)" : "none",
+            }}>
+              {m.role === "coach" ? (
+                <div style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
+                  <Sparkles size={13} style={{ marginTop: 3, flexShrink: 0, color: "var(--optic)" }} />
+                  <span>{m.content}</span>
+                </div>
+              ) : m.content}
+            </div>
           </div>
-          <button
-            className="btn btn-ghost"
-            style={{ marginTop: 12, fontSize: 12 }}
-            onClick={() => setState("idle")}
-          >
-            New brief
-          </button>
-        </div>
-      ) : null}
+        ))}
 
-      {state === "error" ? (
-        <div
-          className="card"
-          style={{
-            marginTop: 18,
-            padding: 14,
-            border: "1.5px solid var(--clay)",
-          }}
-        >
-          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--clay)" }}>
-            {errorMsg}
+        {loading ? (
+          <div style={{ display: "flex", justifyContent: "flex-start" }}>
+            <div style={{ padding: "10px 13px", borderRadius: "14px 14px 14px 4px", background: "var(--paper2)", border: "1.5px solid var(--ink)", display: "flex", alignItems: "center", gap: 6 }}>
+              <Sparkles size={13} style={{ color: "var(--optic)" }} />
+              <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 600 }}>Thinking…</span>
+            </div>
           </div>
-          <button
-            className="btn btn-ghost"
-            style={{ marginTop: 8, fontSize: 12 }}
-            onClick={() => setState("idle")}
-          >
-            Try again
-          </button>
-        </div>
-      ) : null}
+        ) : null}
+
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input bar */}
+      <div style={{ display: "flex", gap: 8, paddingTop: 10, borderTop: "2px solid var(--ink)" }}>
+        <input
+          className="input"
+          style={{ flex: 1 }}
+          placeholder="Ask your coach…"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+          disabled={loading}
+          maxLength={300}
+        />
+        <button className="btn btn-o" style={{ padding: "0 14px" }} onClick={() => send()} disabled={loading || !input.trim()}>
+          <Send size={15} />
+        </button>
+      </div>
     </div>
   );
 }
