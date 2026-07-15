@@ -21,6 +21,7 @@ export default function CalendarView({
   isLoading,
   error,
   setStatus,
+  setStatusError,
   onMessage,
   myId,
   results,
@@ -45,6 +46,10 @@ export default function CalendarView({
       <ErrorNote
         error={error}
         label="Couldn't load sessions. Try again in a moment."
+      />
+      <ErrorNote
+        error={setStatusError}
+        label="Couldn't update that session. Try again."
       />
       {GROUPS.map((g) => {
         const items = list.filter((s) => s.uiStatus === g.key);

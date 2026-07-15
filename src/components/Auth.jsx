@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import { Activity, Mail, Lock, User, Loader2, MailCheck } from "lucide-react";
 import { useAuth } from "../hooks/hooks.jsx";
 import { isSupabaseConfigured } from "../lib/services.js";
-import { ErrorNote } from "./Shared.jsx";
+import { ErrorNote, CharWarning } from "./Shared.jsx";
+import { sanitizeName } from "../lib/textFilter.js";
+import { useCharWarning } from "../hooks/useCharWarning.js";
 
 // Sign in with Apple needs a paid Apple Developer account (Services ID +
 // private key) configured in the Supabase dashboard. Flip this on once
@@ -20,6 +22,8 @@ export default function Auth() {
   const [formLoading, setFormLoading] = useState(false);
   const [error, setError] = useState(null);
   const [checkEmail, setCheckEmail] = useState(false);
+  const [firstNameWarn, filterFirstName] = useCharWarning(sanitizeName);
+  const [lastNameWarn, filterLastName] = useCharWarning(sanitizeName);
 
   const withOAuth = async (provider) => {
     setError(null);
@@ -106,11 +110,13 @@ export default function Auth() {
                     <div style={{ flex: 1, position: "relative" }}>
                       <User size={15} style={{ position: "absolute", left: 12, top: 12, color: "var(--muted)" }} />
                       <input className="inp" style={{ paddingLeft: 34 }} placeholder="First name"
-                        value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+                        value={firstName} onChange={(e) => setFirstName(filterFirstName(e.target.value))} required />
+                      <CharWarning show={firstNameWarn} />
                     </div>
                     <div style={{ flex: 1 }}>
                       <input className="inp" placeholder="Last name"
-                        value={lastName} onChange={(e) => setLastName(e.target.value)} required />
+                        value={lastName} onChange={(e) => setLastName(filterLastName(e.target.value))} required />
+                      <CharWarning show={lastNameWarn} />
                     </div>
                   </div>
                 ) : null}

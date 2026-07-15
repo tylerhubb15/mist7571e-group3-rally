@@ -70,6 +70,20 @@ body { margin: 0; }
   font-family: inherit; font-size: 14px; width: 100%; background: #fff; font-weight: 500;
 }
 .divider { height: 1.5px; background: var(--ink); opacity: .1; }
+input[type="range"] {
+  -webkit-appearance: none; appearance: none; height: 6px; border-radius: 99px;
+  background: var(--paper2);
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--clay); border: 2.5px solid var(--ink); cursor: pointer; margin-top: -9px;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 24px; height: 24px; border-radius: 50%; background: var(--clay); border: 2.5px solid var(--ink); cursor: pointer;
+}
+input[type="range"]::-moz-range-track { height: 6px; border-radius: 99px; background: var(--paper2); }
+input[type="range"]:disabled::-webkit-slider-thumb { background: var(--muted); border-color: var(--muted); cursor: not-allowed; }
+input[type="range"]:disabled::-moz-range-thumb { background: var(--muted); border-color: var(--muted); cursor: not-allowed; }
 .bubble-me   { background: var(--ink); color: var(--paper); border-radius: 18px 18px 4px 18px; align-self: flex-end; }
 .bubble-them { background: var(--paper2); color: var(--ink); border-radius: 18px 18px 18px 4px; align-self: flex-start; }
 .unread-dot { width: 9px; height: 9px; border-radius: 99px; background: var(--clay); border: 1.5px solid #fff; flex-shrink: 0; }

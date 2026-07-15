@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ChevronLeft, ChevronRight, Send, Wifi } from "lucide-react";
 import { useConversations, useThread } from "../hooks/hooks.jsx";
-import { Avatar, Header, Loading, ErrorNote } from "./Shared.jsx";
+import { Avatar, Header, Loading, ErrorNote, CharWarning } from "./Shared.jsx";
+import { sanitizeText } from "../lib/textFilter.js";
+import { useCharWarning } from "../hooks/useCharWarning.js";
 
 const fmtTime = (iso) =>
   new Date(iso).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -58,6 +60,7 @@ function Thread({ myId, partner, onBack }) {
   const { data: thread, isLoading, error, send, markRead } = useThread(myId, partner.id);
   const [draft, setDraft] = useState("");
   const [sendError, setSendError] = useState(null);
+  const [draftWarn, filterDraft] = useCharWarning(sanitizeText);
   const bottomRef = useRef(null);
 
   useEffect(() => { markRead(); }, [partner.id]);
@@ -108,12 +111,15 @@ function Thread({ myId, partner, onBack }) {
         ))}
         <div ref={bottomRef} />
       </div>
-      <div style={{ display: "flex", gap: 9, paddingTop: 12, borderTop: "1.5px solid var(--ink)" }}>
-        <input className="inp" placeholder="Message…" value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") sendMsg(); }}
-          style={{ flex: 1 }} />
-        <button className="btn btn-o" style={{ padding: "10px 14px" }} onClick={sendMsg}><Send size={16} /></button>
+      <div style={{ paddingTop: 12, borderTop: "1.5px solid var(--ink)" }}>
+        <div style={{ display: "flex", gap: 9 }}>
+          <input className="inp" placeholder="Message…" value={draft}
+            onChange={(e) => setDraft(filterDraft(e.target.value))}
+            onKeyDown={(e) => { if (e.key === "Enter") sendMsg(); }}
+            style={{ flex: 1 }} />
+          <button className="btn btn-o" style={{ padding: "10px 14px" }} onClick={sendMsg}><Send size={16} /></button>
+        </div>
+        <CharWarning show={draftWarn} />
       </div>
     </div>
   );

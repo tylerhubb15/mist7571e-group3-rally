@@ -1,9 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
-import { X, LocateFixed } from "lucide-react";
+import { X, LocateFixed, Minus, Plus } from "lucide-react";
 import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 import { COURT_LOCS } from "../data/mockData.js";
 import { useAllProfiles } from "../hooks/hooks.jsx";
 import { Avatar, Header, Loading, ErrorNote, Field } from "./Shared.jsx";
+import { distanceMiles } from "../lib/geo.js";
+
+const RADIUS_MIN = 3;
+const RADIUS_MAX = 25;
 
 // Athens, GA center — used as the "you are here" fallback until a user sets
 // their real location.
@@ -61,6 +65,7 @@ export default function CourtsMap({ me, update }) {
   const playersHere = selCourt ? list.filter((p) => p.home_court === selCourt.name) : [];
   const userLat = me.lat ?? DEFAULT_LAT;
   const userLng = me.lng ?? DEFAULT_LNG;
+  const selCourtDistance = selCourt ? distanceMiles(userLat, userLng, selCourt.lat, selCourt.lng) : null;
 
   const useMyLocation = () => {
     if (!navigator.geolocation) {
@@ -174,9 +179,21 @@ export default function CourtsMap({ me, update }) {
       </div>
 
       <Field label={`Search radius — ${me.radius_mi} mi`}>
-        <input type="range" min="3" max="25" step="1" value={me.radius_mi}
-          onChange={(e) => update({ fields: { radius_mi: Number(e.target.value) } })}
-          style={{ width: "100%", accentColor: "var(--clay)" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button className="btn btn-ghost" style={{ padding: 8, border: "1.5px solid var(--ink)" }}
+            disabled={me.radius_mi <= RADIUS_MIN}
+            onClick={() => update({ fields: { radius_mi: Math.max(RADIUS_MIN, me.radius_mi - 1) } })}>
+            <Minus size={14} />
+          </button>
+          <input type="range" min={RADIUS_MIN} max={RADIUS_MAX} step="1" value={me.radius_mi}
+            onChange={(e) => update({ fields: { radius_mi: Number(e.target.value) } })}
+            style={{ flex: 1, accentColor: "var(--clay)" }} />
+          <button className="btn btn-ghost" style={{ padding: 8, border: "1.5px solid var(--ink)" }}
+            disabled={me.radius_mi >= RADIUS_MAX}
+            onClick={() => update({ fields: { radius_mi: Math.min(RADIUS_MAX, me.radius_mi + 1) } })}>
+            <Plus size={14} />
+          </button>
+        </div>
       </Field>
 
       <ErrorNote error={playersError} label="Couldn't load players. Try again in a moment." />
@@ -215,6 +232,7 @@ export default function CourtsMap({ me, update }) {
               <div style={{ fontSize: 13, color: "var(--muted)", fontWeight: 600, marginTop: 3, display: "flex", gap: 10 }}>
                 <span>{selCourt.courts} courts</span>
                 <span>{selCourt.surfaces.join(" & ")}</span>
+                <span>{selCourtDistance.toFixed(1)} mi away</span>
                 {selCourt.lit ? <span style={{ color: "var(--optic-d)" }}>Lit</span> : null}
               </div>
             </div>

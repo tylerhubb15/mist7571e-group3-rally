@@ -82,6 +82,7 @@ export function useProfile(userId) {
   return {
     ...query,
     update: update.mutate,
+    updateAsync: update.mutateAsync,
     updating: update.isPending,
     updateError: update.error,
   };
@@ -158,6 +159,7 @@ export function useSessions(userId) {
     proposeAsync: propose.mutateAsync,
     proposing:    propose.isPending,
     setStatus:    setStatus.mutate,
+    setStatusError: setStatus.error,
   };
 }
 

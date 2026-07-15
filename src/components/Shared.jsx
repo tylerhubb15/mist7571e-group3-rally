@@ -1,5 +1,5 @@
 import React from "react";
-import { Sparkles, Loader2, AlertTriangle } from "lucide-react";
+import { Sparkles, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 export const ScoreRing = ({ value, size = 58 }) => {
   const col = value >= 75 ? "var(--optic)" : value >= 50 ? "#e9d34a" : "var(--clay)";
@@ -47,6 +47,27 @@ export const ErrorNote = ({ error, label }) => {
       color: "var(--clay)", fontWeight: 600, fontSize: 12.5, marginBottom: 12 }}>
       <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
       <span>{label || error.message || "Something went wrong."}</span>
+    </div>
+  );
+};
+
+export const SuccessNote = ({ show, label }) => {
+  if (!show) return null;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 12px",
+      borderRadius: 10, border: "1.5px solid var(--optic-d)", background: "rgba(165,196,36,.15)",
+      color: "var(--ink)", fontWeight: 600, fontSize: 12.5, marginBottom: 12 }}>
+      <CheckCircle2 size={14} style={{ flexShrink: 0 }} />
+      <span>{label}</span>
+    </div>
+  );
+};
+
+export const CharWarning = ({ show, label = "Emojis and special characters aren't allowed." }) => {
+  if (!show) return null;
+  return (
+    <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--clay)", marginTop: 5 }}>
+      {label}
     </div>
   );
 };

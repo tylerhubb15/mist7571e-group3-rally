@@ -51,6 +51,7 @@ function AuthedApp({ user, signOut }) {
     error: profileError,
     refetch,
     update,
+    updateAsync,
     updating,
     updateError,
   } = profileQuery;
@@ -243,6 +244,7 @@ function AuthedApp({ user, signOut }) {
             isLoading={sessionsHook.isLoading}
             error={sessionsHook.error}
             setStatus={sessionsHook.setStatus}
+            setStatusError={sessionsHook.setStatusError}
             onMessage={openThread}
             myId={user.id}
             results={matchResultsHook.data}
@@ -254,6 +256,7 @@ function AuthedApp({ user, signOut }) {
           <Profile
             me={profile}
             update={update}
+            updateAsync={updateAsync}
             updating={updating}
             updateError={updateError}
             matchResults={matchResultsHook.data}

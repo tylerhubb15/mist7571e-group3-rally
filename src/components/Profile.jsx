@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from "react";
-import { Trophy, Pencil, Plus } from "lucide-react";
+import React, { useState } from "react";
+import { Trophy, Pencil, Plus, X, Check } from "lucide-react";
 import { DAYS, PERIODS, INTENTS, FORMATS, HANDS, COURTS } from "../data/mockData.js";
-import { Header, Field, ErrorNote, Avatar } from "./Shared.jsx";
+import { Header, Field, ErrorNote, SuccessNote, CharWarning, Avatar } from "./Shared.jsx";
+import { sanitizeText, sanitizeName } from "../lib/textFilter.js";
+import { useCharWarning } from "../hooks/useCharWarning.js";
 
 const fmtDate = (d) =>
   new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 const formatSets = (r) => [r.set1_score, r.set2_score, r.set3_score].filter(Boolean).join(", ");
 const names = (people) => people.map((p) => p.name).join(" & ");
 
-export default function Profile({ me, update, updating, updateError, matchResults, onAddMatch, onEditMatch }) {
+export default function Profile({ me, updateAsync, updating, updateError, matchResults, onAddMatch, onEditMatch }) {
   const stats = (matchResults || []).reduce(
     (acc, r) => {
       acc.played++;
@@ -20,42 +22,110 @@ export default function Profile({ me, update, updating, updateError, matchResult
     { played: 0, won: 0, lost: 0, noDecision: 0 }
   );
 
+  const [editing, setEditing] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
+  const [saveError, setSaveError] = useState(null);
+
   const [firstNameDraft, setFirstNameDraft] = useState(me.first_name);
   const [lastNameDraft, setLastNameDraft] = useState(me.last_name || "");
   const [racketDraft, setRacketDraft] = useState(me.racket || "");
   const [bioDraft, setBioDraft] = useState(me.bio || "");
-  useEffect(() => setFirstNameDraft(me.first_name), [me.first_name]);
-  useEffect(() => setLastNameDraft(me.last_name || ""), [me.last_name]);
-  useEffect(() => setRacketDraft(me.racket || ""), [me.racket]);
-  useEffect(() => setBioDraft(me.bio || ""), [me.bio]);
+  const [ntrpDraft, setNtrpDraft] = useState(me.ntrp);
+  const [homeCourtDraft, setHomeCourtDraft] = useState(me.home_court || "");
+  const [handDraft, setHandDraft] = useState(me.hand);
+  const [formatsDraft, setFormatsDraft] = useState(me.formats);
+  const [intentDraft, setIntentDraft] = useState(me.intent);
+  const [slotsDraft, setSlotsDraft] = useState(me.slots);
 
-  const saveTextField = (field, draft, original) => {
-    if (draft !== (original || "")) update({ fields: { [field]: draft } });
+  const [firstNameWarn, filterFirstName] = useCharWarning(sanitizeName);
+  const [lastNameWarn, filterLastName] = useCharWarning(sanitizeName);
+  const [racketWarn, filterRacket] = useCharWarning(sanitizeText);
+  const [bioWarn, filterBio] = useCharWarning(sanitizeText);
+
+  const startEdit = () => {
+    setFirstNameDraft(me.first_name);
+    setLastNameDraft(me.last_name || "");
+    setRacketDraft(me.racket || "");
+    setBioDraft(me.bio || "");
+    setNtrpDraft(me.ntrp);
+    setHomeCourtDraft(me.home_court || "");
+    setHandDraft(me.hand);
+    setFormatsDraft(me.formats);
+    setIntentDraft(me.intent);
+    setSlotsDraft(me.slots);
+    setSaveError(null);
+    setJustSaved(false);
+    setEditing(true);
+  };
+
+  const cancelEdit = () => {
+    setEditing(false);
+    setSaveError(null);
+  };
+
+  const saveAll = async () => {
+    setSaveError(null);
+    try {
+      await updateAsync({
+        fields: {
+          first_name: firstNameDraft,
+          last_name: lastNameDraft,
+          racket: racketDraft,
+          bio: bioDraft,
+          ntrp: ntrpDraft,
+          home_court: homeCourtDraft,
+          hand: handDraft,
+          formats: formatsDraft,
+          intent: intentDraft,
+        },
+        slots: slotsDraft,
+      });
+      setEditing(false);
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 3000);
+    } catch (err) {
+      setSaveError(err);
+    }
   };
 
   const toggleSlot = (s) => {
-    const slots = me.slots.includes(s) ? me.slots.filter((x) => x !== s) : [...me.slots, s];
-    update({ slots });
+    if (!editing) return;
+    setSlotsDraft((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
   };
 
   const toggleIntent = (it) => {
-    const has = me.intent.includes(it);
-    if (has && me.intent.length === 1) return; // keep at least one selected
-    const intent = has ? me.intent.filter((x) => x !== it) : [...me.intent, it];
-    update({ fields: { intent } });
+    if (!editing) return;
+    setIntentDraft((prev) => {
+      const has = prev.includes(it);
+      if (has && prev.length === 1) return prev; // keep at least one selected
+      return has ? prev.filter((x) => x !== it) : [...prev, it];
+    });
   };
 
   const toggleFormat = (f) => {
-    const has = me.formats.includes(f);
-    if (has && me.formats.length === 1) return; // keep at least one selected
-    const formats = has ? me.formats.filter((x) => x !== f) : [...me.formats, f];
-    update({ fields: { formats } });
+    if (!editing) return;
+    setFormatsDraft((prev) => {
+      const has = prev.includes(f);
+      if (has && prev.length === 1) return prev; // keep at least one selected
+      return has ? prev.filter((x) => x !== f) : [...prev, f];
+    });
   };
+
+  const slots = editing ? slotsDraft : me.slots;
+  const intent = editing ? intentDraft : me.intent;
+  const formats = editing ? formatsDraft : me.formats;
 
   return (
     <div>
       <Header eyebrow="Your profile" title="Game settings" sub="Drives every match you see." />
-      <ErrorNote error={updateError} label="Couldn't save that change — try again." />
+
+      {!editing ? (
+        <div className="card" style={{ padding: 14, marginBottom: 14 }}>
+          <button className="btn btn-o" style={{ width: "100%", justifyContent: "center" }} onClick={startEdit}>
+            <Pencil size={14} />Edit profile
+          </button>
+        </div>
+      ) : null}
 
       <div className="card" style={{ padding: 20, marginBottom: 16, background: "var(--ink)", color: "var(--paper)", boxShadow: "4px 5px 0 var(--clay)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -133,59 +203,72 @@ export default function Profile({ me, update, updating, updateError, matchResult
 
       <Field label="Your name">
         <div style={{ display: "flex", gap: 9 }}>
-          <input className="inp" placeholder="First name" value={firstNameDraft}
-            onChange={(e) => setFirstNameDraft(e.target.value)}
-            onBlur={() => saveTextField("first_name", firstNameDraft, me.first_name)} />
-          <input className="inp" placeholder="Last name" value={lastNameDraft}
-            onChange={(e) => setLastNameDraft(e.target.value)}
-            onBlur={() => saveTextField("last_name", lastNameDraft, me.last_name)} />
+          <div style={{ flex: 1 }}>
+            <input className="inp" placeholder="First name" disabled={!editing}
+              style={{ opacity: editing ? 1 : 0.6 }}
+              value={editing ? firstNameDraft : me.first_name}
+              onChange={(e) => setFirstNameDraft(filterFirstName(e.target.value))} />
+            <CharWarning show={firstNameWarn} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <input className="inp" placeholder="Last name" disabled={!editing}
+              style={{ opacity: editing ? 1 : 0.6 }}
+              value={editing ? lastNameDraft : (me.last_name || "")}
+              onChange={(e) => setLastNameDraft(filterLastName(e.target.value))} />
+            <CharWarning show={lastNameWarn} />
+          </div>
         </div>
       </Field>
 
-      <Field label={`Skill rating — ${me.ntrp} NTRP`}>
-        <input type="range" min="2.5" max="5.0" step="0.5" value={me.ntrp}
-          onChange={(e) => update({ fields: { ntrp: Number(e.target.value) } })}
-          style={{ width: "100%", accentColor: "var(--clay)" }} />
+      <Field label={`Skill rating — ${editing ? ntrpDraft : me.ntrp} NTRP`}>
+        <input type="range" min="2.5" max="5.0" step="0.5" disabled={!editing}
+          value={editing ? ntrpDraft : me.ntrp}
+          onChange={(e) => setNtrpDraft(Number(e.target.value))}
+          style={{ width: "100%", accentColor: "var(--clay)", opacity: editing ? 1 : 0.6 }} />
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 700, color: "var(--muted)" }}>
           <span>2.5</span><span>5.0</span>
         </div>
       </Field>
 
       <Field label="Home court">
-        <select className="inp" value={me.home_court || ""} onChange={(e) => update({ fields: { home_court: e.target.value } })}>
+        <select className="inp" disabled={!editing} style={{ opacity: editing ? 1 : 0.6 }}
+          value={editing ? homeCourtDraft : (me.home_court || "")}
+          onChange={(e) => setHomeCourtDraft(e.target.value)}>
           <option value="" disabled>Choose a court…</option>
           {COURTS.map((c) => <option key={c}>{c}</option>)}
         </select>
       </Field>
 
       <Field label="Racket">
-        <input className="inp" placeholder="e.g. Wilson Blade 100 v10" value={racketDraft}
-          onChange={(e) => setRacketDraft(e.target.value)}
-          onBlur={() => saveTextField("racket", racketDraft, me.racket)} />
+        <input className="inp" placeholder="e.g. Wilson Blade 100 v10" disabled={!editing}
+          style={{ opacity: editing ? 1 : 0.6 }}
+          value={editing ? racketDraft : (me.racket || "")}
+          onChange={(e) => setRacketDraft(filterRacket(e.target.value))} />
+        <CharWarning show={racketWarn} />
       </Field>
 
       <Field label="Dominant hand">
-        <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 7, flexWrap: "wrap", opacity: editing ? 1 : 0.6, pointerEvents: editing ? "auto" : "none" }}>
           {HANDS.map((h) => (
-            <button key={h} className={`slot ${me.hand === h ? "on" : ""}`}
-              style={{ padding: "7px 12px" }} onClick={() => update({ fields: { hand: h } })}>{h}</button>
+            <button key={h} className={`slot ${(editing ? handDraft : me.hand) === h ? "on" : ""}`}
+              style={{ padding: "7px 12px" }} onClick={() => setHandDraft(h)}>{h}</button>
           ))}
         </div>
       </Field>
 
       <Field label="What you play (pick one or both)">
-        <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 7, flexWrap: "wrap", opacity: editing ? 1 : 0.6, pointerEvents: editing ? "auto" : "none" }}>
           {FORMATS.map((f) => (
-            <button key={f} className={`slot ${me.formats.includes(f) ? "on" : ""}`}
+            <button key={f} className={`slot ${formats.includes(f) ? "on" : ""}`}
               style={{ padding: "7px 12px" }} onClick={() => toggleFormat(f)}>{f}</button>
           ))}
         </div>
       </Field>
 
       <Field label="What you're after (pick as many as apply)">
-        <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 7, flexWrap: "wrap", opacity: editing ? 1 : 0.6, pointerEvents: editing ? "auto" : "none" }}>
           {INTENTS.map((it) => (
-            <button key={it} className={`slot ${me.intent.includes(it) ? "on" : ""}`}
+            <button key={it} className={`slot ${intent.includes(it) ? "on" : ""}`}
               style={{ padding: "7px 12px" }} onClick={() => toggleIntent(it)}>{it}</button>
           ))}
         </div>
@@ -193,13 +276,15 @@ export default function Profile({ me, update, updating, updateError, matchResult
 
       <Field label="About you">
         <textarea className="inp" rows={3} placeholder="Playing style, what you're looking for, anything else worth knowing."
-          style={{ resize: "vertical", fontFamily: "inherit" }} value={bioDraft}
-          onChange={(e) => setBioDraft(e.target.value)}
-          onBlur={() => saveTextField("bio", bioDraft, me.bio)} />
+          disabled={!editing} style={{ resize: "vertical", fontFamily: "inherit", opacity: editing ? 1 : 0.6 }}
+          value={editing ? bioDraft : (me.bio || "")}
+          onChange={(e) => setBioDraft(filterBio(e.target.value))} />
+        <CharWarning show={bioWarn} />
       </Field>
 
       <Field label="Weekly availability">
-        <div style={{ display: "grid", gridTemplateColumns: "auto repeat(3,1fr)", gap: 5, alignItems: "center" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "auto repeat(3,1fr)", gap: 5, alignItems: "center",
+          opacity: editing ? 1 : 0.6, pointerEvents: editing ? "auto" : "none" }}>
           <span />
           {PERIODS.map((p) => (
             <div key={p} style={{ textAlign: "center", fontSize: 10, fontWeight: 700, color: "var(--muted)" }}>{p}</div>
@@ -210,9 +295,9 @@ export default function Profile({ me, update, updating, updateError, matchResult
               {PERIODS.map((p) => {
                 const s = `${d}-${p}`;
                 return (
-                  <button key={s} className={`slot ${me.slots.includes(s) ? "on" : ""}`}
+                  <button key={s} className={`slot ${slots.includes(s) ? "on" : ""}`}
                     style={{ height: 28, padding: 0 }} onClick={() => toggleSlot(s)}>
-                    {me.slots.includes(s) ? "●" : ""}
+                    {slots.includes(s) ? "●" : ""}
                   </button>
                 );
               })}
@@ -221,7 +306,20 @@ export default function Profile({ me, update, updating, updateError, matchResult
         </div>
       </Field>
 
-      {updating ? <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>Saving…</div> : null}
+      <ErrorNote error={saveError || updateError} label="Couldn't save that change — try again." />
+      <SuccessNote show={justSaved} label="Profile saved." />
+
+      {editing ? (
+        <div className="card" style={{ padding: 14, marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
+          <button className="btn btn-y" style={{ flex: 1, justifyContent: "center" }} disabled={updating} onClick={saveAll}>
+            <Check size={15} />{updating ? "Saving…" : "Save changes"}
+          </button>
+          <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center", border: "1.5px solid var(--ink)" }}
+            disabled={updating} onClick={cancelEdit}>
+            <X size={15} />Cancel
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

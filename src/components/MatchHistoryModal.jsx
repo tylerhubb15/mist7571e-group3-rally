@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { Trophy, X } from "lucide-react";
-import { Avatar, ErrorNote } from "./Shared.jsx";
+import { Avatar, ErrorNote, CharWarning } from "./Shared.jsx";
 import { useAllProfiles } from "../hooks/hooks.jsx";
 import { FORMATS } from "../data/mockData.js";
+import { sanitizeText } from "../lib/textFilter.js";
+import { useCharWarning } from "../hooks/useCharWarning.js";
 
 const today = () => new Date().toISOString().slice(0, 10);
 // A slot defaults to picking from Rally users — freeform only when
@@ -13,6 +15,7 @@ const slotFrom = (id, name) => ({ mode: id ? "rally" : name ? "freeform" : "rall
 
 function PlayerSlot({ label, required, slot, setSlot, others, excludeIds }) {
   const available = others.filter((p) => !excludeIds.includes(p.id));
+  const [nameWarn, filterName] = useCharWarning(sanitizeText);
   return (
     <div style={{ marginBottom: 14 }}>
       <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 7 }}>
@@ -30,8 +33,11 @@ function PlayerSlot({ label, required, slot, setSlot, others, excludeIds }) {
           {available.map((p) => <option key={p.id} value={p.id}>{p.name} · {p.ntrp}</option>)}
         </select>
       ) : (
-        <input className="inp" placeholder="Their name" value={slot.name}
-          onChange={(e) => setSlot({ ...slot, name: e.target.value })} />
+        <>
+          <input className="inp" placeholder="Their name" value={slot.name}
+            onChange={(e) => setSlot({ ...slot, name: filterName(e.target.value) })} />
+          <CharWarning show={nameWarn} />
+        </>
       )}
     </div>
   );
