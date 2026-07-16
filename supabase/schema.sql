@@ -446,13 +446,19 @@ alter table public.match_results     enable row level security;
 alter table public.messages          enable row level security;
 
 -- Profiles: anyone authenticated can read; only owner can write
+drop policy if exists "profiles_select" on public.profiles;
 create policy "profiles_select" on public.profiles for select to authenticated using (true);
+drop policy if exists "profiles_insert" on public.profiles;
 create policy "profiles_insert" on public.profiles for insert to authenticated with check (id = auth.uid());
+drop policy if exists "profiles_update" on public.profiles;
 create policy "profiles_update" on public.profiles for update to authenticated using (id = auth.uid());
 
 -- Availability: same as profiles
+drop policy if exists "avail_select" on public.availability_slots;
 create policy "avail_select" on public.availability_slots for select to authenticated using (true);
+drop policy if exists "avail_insert" on public.availability_slots;
 create policy "avail_insert" on public.availability_slots for insert to authenticated with check (profile_id = auth.uid());
+drop policy if exists "avail_delete" on public.availability_slots;
 create policy "avail_delete" on public.availability_slots for delete to authenticated using (profile_id = auth.uid());
 
 -- Sessions: visible to all four participants for doubles (just the two
@@ -522,9 +528,12 @@ create policy "match_results_update" on public.match_results for update to authe
   );
 
 -- Messages: visible only to sender + recipient
+drop policy if exists "messages_select" on public.messages;
 create policy "messages_select" on public.messages for select to authenticated
   using (auth.uid() in (sender_id, recipient_id));
+drop policy if exists "messages_insert" on public.messages;
 create policy "messages_insert" on public.messages for insert to authenticated
   with check (sender_id = auth.uid());
+drop policy if exists "messages_update" on public.messages;
 create policy "messages_update" on public.messages for update to authenticated
   using (recipient_id = auth.uid());  -- only recipient can mark read
