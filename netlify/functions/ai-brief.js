@@ -83,12 +83,16 @@ Give exactly 3 short bullet points (one sentence each) of specific, tactical mat
       return {
         statusCode: 502,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ error: `OpenAI error: ${response.status}`, detail: err }),
+        body: JSON.stringify({
+          error: `OpenAI error: ${response.status}`,
+          detail: err,
+        }),
       };
     }
 
     const data = await response.json();
-    const brief = data.choices?.[0]?.message?.content?.trim() || "No response generated.";
+    const brief =
+      data.choices?.[0]?.message?.content?.trim() || "No response generated.";
 
     return {
       statusCode: 200,
@@ -99,7 +103,10 @@ Give exactly 3 short bullet points (one sentence each) of specific, tactical mat
     return {
       statusCode: 500,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Failed to reach OpenAI.", detail: err.message }),
+      body: JSON.stringify({
+        error: "Failed to reach OpenAI.",
+        detail: err.message,
+      }),
     };
   }
 };
