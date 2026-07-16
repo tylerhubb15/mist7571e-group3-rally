@@ -163,15 +163,15 @@ export default function CourtsMap({ me, update }) {
     <div>
       <Header eyebrow="Court finder" title="Courts near you" sub="Athens, GA · tap a pin for details" />
 
-      <div className="card" style={{ padding: 14, marginBottom: 14 }}>
+      <div className="card card-section">
         <div className="text-label mb-10">Your location
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <div className="items-center gap-10 flex-wrap">
           <button className="btn btn-o" disabled={geoLoading} onClick={useMyLocation}>
             <LocateFixed size={14} />{geoLoading ? "Locating…" : "Use my location"}
           </button>
-          <span className="text-muted" style={{ fontSize: 12 }}>
-            {me.lat != null ? `Set (${me.lat.toFixed(2)}, ${me.lng.toFixed(2)})` : "Not set — matching needs this"}
+          <span className="text-muted text-12">
+            {me.lat !== null ? `Set (${me.lat.toFixed(2)}, ${me.lng.toFixed(2)})` : "Not set — matching needs this"}
           </span>
         </div>
         <ErrorNote error={geoError ? { message: geoError } : null} />
@@ -179,15 +179,15 @@ export default function CourtsMap({ me, update }) {
 
       <Field label={`Search radius — ${me.radius_mi} mi`}>
         <div className="flex-center-gap">
-          <button className="btn btn-ghost btn-icon" style={{ border: "1.5px solid var(--ink)" }}
+          <button className="btn btn-ghost btn-icon border-ink"
             disabled={me.radius_mi <= RADIUS_MIN}
             onClick={() => update({ fields: { radius_mi: Math.max(RADIUS_MIN, me.radius_mi - 1) } })}>
             <Minus size={14} />
           </button>
           <input type="range" min={RADIUS_MIN} max={RADIUS_MAX} step="1" value={me.radius_mi}
             onChange={(e) => update({ fields: { radius_mi: Number(e.target.value) } })}
-            className="flex-1" style={{ accentColor: "var(--clay)" }} />
-          <button className="btn btn-ghost btn-icon" style={{ border: "1.5px solid var(--ink)" }}
+            className="flex-1 accent-clay" />
+          <button className="btn btn-ghost btn-icon border-ink"
             disabled={me.radius_mi >= RADIUS_MAX}
             onClick={() => update({ fields: { radius_mi: Math.min(RADIUS_MAX, me.radius_mi + 1) } })}>
             <Plus size={14} />
@@ -204,17 +204,16 @@ export default function CourtsMap({ me, update }) {
       <ErrorNote error={mapsError} label="Couldn't load Google Maps — check the API key and that billing is enabled." />
 
       {MAPS_API_KEY ? (
-        <div className="card" style={{ padding: 0, overflow: "hidden", marginBottom: 14, position: "relative" }}>
+        <div className="card p-0 overflow-hidden mb-14 relative">
           {!mapReady && !mapsError ? <Loading label="Loading map…" /> : null}
-          <div ref={mapDivRef} style={{ width: "100%", height: 340, display: mapReady ? "block" : "none" }} />
-          <div className="flex-start" style={{ padding: "10px 14px", borderTop: mapReady ? "1.5px solid var(--ink)" : "none", background: "#fff",
-            gap: 16, fontSize: 11, fontWeight: 700 }}>
+          <div ref={mapDivRef} className={`w-full h-340 ${mapReady ? "block" : "hidden"}`} />
+          <div className={`flex-start map-legend gap-16 text-11 fw-700 ${mapReady ? "border-top-ink" : ""}`}>
             <span className="flex-center-gap">
-              <span style={{ width: 12, height: 12, borderRadius: 99, background: "var(--ink)" }} />
+              <span className="legend-dot-ink" />
               # Courts / players
             </span>
             <span className="flex-center-gap">
-              <span style={{ width: 12, height: 12, borderRadius: 99, background: "var(--optic)", border: "1.5px solid var(--ink)" }} />
+              <span className="legend-dot-optic" />
               You
             </span>
           </div>
@@ -224,20 +223,20 @@ export default function CourtsMap({ me, update }) {
       {playersLoading ? <Loading label="Loading players…" /> : null}
 
       {selCourt ? (
-        <div className="card pop" style={{ padding: 18 }}>
+        <div className="card pop p-18">
           <div className="flex-between mb-12">
             <div>
-              <div className="disp" style={{ fontSize: 21, fontWeight: 800 }}>{selCourt.name}</div>
-              <div className="text-muted" style={{ fontSize: 13, marginTop: 3, display: "flex", gap: 10 }}>
+              <div className="disp text-21 fw-800">{selCourt.name}</div>
+              <div className="text-muted text-13 mt-3 flex gap-10">
                 <span>{selCourt.courts} courts</span>
                 <span>{selCourt.surfaces.join(" & ")}</span>
                 <span>{selCourtDistance.toFixed(1)} mi away</span>
-                {selCourt.lit ? <span style={{ color: "var(--optic-d)" }}>Lit</span> : null}
+                {selCourt.lit ? <span className="text-optic-d">Lit</span> : null}
               </div>
             </div>
             <button className="btn btn-ghost btn-icon" onClick={() => setSelected(null)}><X size={16} /></button>
           </div>
-          <p style={{ fontSize: 14, margin: "0 0 13px", fontWeight: 500 }}>{selCourt.desc}</p>
+          <p className="court-desc">{selCourt.desc}</p>
           {playersHere.length > 0 ? (
             <div>
               <div className="text-label mb-8">Players here</div>
@@ -245,8 +244,8 @@ export default function CourtsMap({ me, update }) {
                 {playersHere.map((p) => (
                   <div key={p.id} className="flex-center-gap">
                     <Avatar name={p.name} size={32} />
-                    <span style={{ fontWeight: 700, fontSize: 14 }}>{p.name}</span>
-                    <span className="tag" style={{ background: "var(--optic)", marginLeft: "auto" }}>{p.ntrp}</span>
+                    <span className="fw-700 text-14">{p.name}</span>
+                    <span className="tag tag-optic ml-auto">{p.ntrp}</span>
                   </div>
                 ))}
               </div>
@@ -254,8 +253,8 @@ export default function CourtsMap({ me, update }) {
           ) : null}
         </div>
       ) : (
-        <div className="card" style={{ padding: 16, background: "var(--paper2)" }}>
-          <div className="text-muted text-center" style={{ fontSize: 13 }}>Tap a court pin to see details and nearby players.</div>
+        <div className="card p-16 bg-paper2">
+          <div className="text-muted text-center text-13">Tap a court pin to see details and nearby players.</div>
         </div>
       )}
     </div>

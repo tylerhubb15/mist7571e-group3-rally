@@ -56,34 +56,16 @@ export default function CalendarView({
         if (!items.length) return null;
         return (
           <div key={g.key} className="mb-20">
-            <div className="flex-center-gap" style={{ marginBottom: 10 }}>
-              <span
-                style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: 99,
-                  background: g.color,
-                  border: "1.3px solid var(--ink)",
-                }}
-              />
-              <span
-                className="disp"
-                style={{
-                  fontSize: 14,
-                  fontWeight: 800,
-                  textTransform: "uppercase",
-                  letterSpacing: ".02em",
-                }}
-              >
+            <div className="flex-center-gap mb-10">
+              <span className="group-dot" style={{ background: g.color }} />
+              <span className="disp group-label">
                 {g.label}
               </span>
-              <span
-                style={{ fontSize: 13, color: "var(--muted)", fontWeight: 700 }}
-              >
+              <span className="group-count">
                 {items.length}
               </span>
             </div>
-            <div style={{ display: "grid", gap: 11 }}>
+            <div className="grid gap-11">
               {items.map((s) => {
                 const otherTeam = s.otherTeam || [];
                 const primary = otherTeam[0] || {};
@@ -91,61 +73,24 @@ export default function CalendarView({
                 const myPartner = (s.myTeam || []).find((p) => p.id !== myId);
                 const slot = `${s.slot_day}-${s.slot_period}`;
                 return (
-                  <div key={s.id} className="card rise" style={{ padding: 15 }}>
+                  <div key={s.id} className="card rise p-15">
                     <div className="flex-center-gap">
                       <Avatar name={primary.name || "?"} />
                       <div className="flex-1">
-                        <div
-                          className="disp"
-                          style={{
-                            fontSize: 16,
-                            fontWeight: 800,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                            flexWrap: "wrap",
-                          }}
-                        >
+                        <div className="disp session-name items-center gap-6 flex-wrap">
                           {otherNames || "Unknown"}
                           {s.format === "Doubles" ? (
-                            <span
-                              className="tag"
-                              style={{
-                                background: "var(--paper2)",
-                                fontSize: 9,
-                              }}
-                            >
+                            <span className="tag tag-doubles">
                               Doubles
                             </span>
                           ) : null}
                         </div>
-                        <div
-                          className="text-muted"
-                          style={{
-                            fontSize: 12,
-                            display: "flex",
-                            gap: 10,
-                            marginTop: 2,
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <span
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 3,
-                            }}
-                          >
+                        <div className="text-muted text-12 flex gap-10 mt-2 flex-wrap">
+                          <span className="items-center gap-3">
                             <Clock size={12} />
                             {slot.replace("-", " ")}
                           </span>
-                          <span
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 3,
-                            }}
-                          >
+                          <span className="items-center gap-3">
                             <MapPin size={12} />
                             {s.court}
                           </span>
@@ -174,10 +119,9 @@ export default function CalendarView({
                       </button>
                     </div>
                     {g.key === "incoming" ? (
-                       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                       <div className="flex gap-8 mt-12">
                         <button
-                          className="btn btn-y btn-full"
-                          style={{ flex: 1 }}
+                          className="btn btn-y btn-full flex-1"
                           onClick={() =>
                             setStatus({ sessionId: s.id, status: "confirmed" })
                           }
@@ -186,8 +130,7 @@ export default function CalendarView({
                           Accept
                         </button>
                         <button
-                          className="btn btn-ghost"
-                          style={{ justifyContent: "center" }}
+                          className="btn btn-ghost justify-center"
                           onClick={() =>
                             setStatus({ sessionId: s.id, status: "declined" })
                           }
@@ -197,35 +140,19 @@ export default function CalendarView({
                       </div>
                     ) : null}
                     {g.key === "pending" ? (
-                      <div className="text-muted" style={{
-                           marginTop: 10,
-                        fontSize: 13,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 5,
-                      }}>
+                      <div className="text-muted mt-10 text-13 items-center gap-5">
                         <Clock size={13} /> Waiting on{" "}
                         {otherNames.split(" ")[0]}…
                       </div>
                     ) : null}
                     {g.key === "confirmed" ? (
-                      <div style={{ marginTop: 10 }}>
+                      <div className="mt-10">
                         <div className="flex-between">
-                          <span
-                            style={{
-                              fontSize: 13,
-                              fontWeight: 700,
-                              color: "var(--ink2)",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 5,
-                            }}
-                          >
+                          <span className="text-13 fw-700 text-ink2 items-center gap-5">
                             <Check size={13} /> Locked in — see you out there
                           </span>
                           <button
-                            className="btn btn-ghost"
-                            style={{ padding: "5px 11px", fontSize: 13 }}
+                            className="btn btn-ghost py-5 px-11 text-13"
                             onClick={() =>
                               setStatus({
                                 sessionId: s.id,
@@ -254,26 +181,14 @@ export default function CalendarView({
                                   ? "You lost"
                                   : "No winner logged";
                           return result ? (
-                           <div className="text-muted" style={{
-                                 marginTop: 8,
-                                fontSize: 13,
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 5,
-                           }}>
+                           <div className="text-muted mt-8 text-13 items-center gap-5">
                                 <Trophy size={13} />
                                 {outcomeLabel}
                                 {scoreText ? ` · ${scoreText}` : ""}
                            </div>
                           ) : (
                            <button
-                                className="btn btn-ghost"
-                                style={{
-                                  marginTop: 8,
-                                  border: "1.5px solid var(--ink)",
-                                  fontSize: 13,
-                                  padding: "6px 11px",
-                                }}
+                                className="btn btn-ghost mt-8 border-ink text-13 py-6 px-11"
                                 onClick={() => onLogResult(s)}
                            >
                                 <Trophy size={13} /> Log result
@@ -290,13 +205,13 @@ export default function CalendarView({
         );
       })}
       {!hasAny ? (
-        <div className="card" style={{ padding: 28 }}>
-          <div style={{ textAlign: "center" }}>
-            <CalIcon size={30} style={{ margin: "0 auto 10px", display: "block" }} />
-            <div className="disp" style={{ fontSize: 18, fontWeight: 800 }}>
+        <div className="card p-28">
+          <div className="text-center">
+            <CalIcon size={30} className="empty-state-icon" />
+            <div className="disp empty-state-title">
               No sessions yet
             </div>
-            <div className="text-muted" style={{ fontSize: 13 }}>
+            <div className="text-muted text-13">
               Head to Discover and propose a hit.
             </div>
           </div>

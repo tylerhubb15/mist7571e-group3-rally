@@ -32,7 +32,7 @@ export default function App() {
 
   if (authLoading) {
     return (
-      <div className="rally court-bg" style={{ minHeight: "100vh" }}>
+      <div className="rally court-bg">
         <Loading label="Loading Rally…" />
       </div>
     );
@@ -72,24 +72,15 @@ function AuthedApp({ user, signOut }) {
 
   if (profileLoading) {
     return (
-      <div className="rally court-bg" style={{ minHeight: "100vh" }}>
+      <div className="rally court-bg">
         <Loading label="Setting up your profile…" />
       </div>
     );
   }
   if (profileError || !profile) {
     return (
-      <div
-        className="rally court-bg"
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: 24,
-        }}
-      >
-        <div className="card" style={{ padding: 24, maxWidth: 380 }}>
+      <div className="rally court-bg flex-center p-24">
+        <div className="card p-24 max-w-380">
           <ErrorNote
             error={
               profileError || {
@@ -103,8 +94,7 @@ function AuthedApp({ user, signOut }) {
             }
           />
           <button
-            className="btn btn-o"
-            style={{ width: "100%", justifyContent: "center" }}
+            className="btn btn-o btn-full"
             onClick={() => refetch()}
           >
             Try again
@@ -159,59 +149,22 @@ function AuthedApp({ user, signOut }) {
 
   return (
     <div className="rally court-bg">
-      <div
-        style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 20,
-          background: "var(--ink)",
-          borderBottom: "2px solid var(--ink)",
-          padding: "11px 18px",
-          display: "flex",
-          alignItems: "center",
-          gap: 9,
-        }}
-      >
-        <div
-          className="ring"
-          style={{ width: 28, height: 28, background: "var(--optic)" }}
-        >
+      <div className="app-header items-center gap-9">
+        <div className="ring app-logo-ring">
           <Activity size={15} color="var(--ink)" />
         </div>
-        <span
-          className="disp"
-          style={{ color: "var(--paper)", fontSize: 21, fontWeight: 800 }}
-        >
+        <span className="disp app-brand">
           RALLY
         </span>
-        <span
-          style={{
-            color: "var(--optic)",
-            fontSize: 11,
-            fontWeight: 700,
-            marginTop: 5,
-          }}
-        >
+        <span className="app-tagline">
           find your hit
         </span>
-        <span
-          style={{
-            marginLeft: "auto",
-            color: "var(--paper)",
-            fontSize: 11,
-            fontWeight: 600,
-            opacity: 0.65,
-            display: "flex",
-            alignItems: "center",
-            gap: 4,
-          }}
-        >
+        <span className="items-center gap-4 app-location">
           <MapPin size={12} />
           Athens, GA
         </span>
         <button
-          className="btn btn-ghost"
-          style={{ padding: 6, color: "var(--paper)" }}
+          className="btn btn-ghost p-6 text-paper"
           title="Sign out"
           onClick={signOut}
         >
@@ -219,9 +172,7 @@ function AuthedApp({ user, signOut }) {
         </button>
       </div>
 
-      <div
-        style={{ maxWidth: 520, margin: "0 auto", padding: "22px 16px 110px" }}
-      >
+      <div className="app-main">
         {tab === "discover" ? (
           <Discover
             me={profile}
@@ -266,48 +217,17 @@ function AuthedApp({ user, signOut }) {
         ) : null}
       </div>
 
-      <div
-        style={{
-          position: "fixed",
-          bottom: 0,
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 30,
-          background: "var(--paper)",
-          borderTop: "2px solid var(--ink)",
-          padding: "6px 6px 10px",
-          display: "flex",
-          maxWidth: 520,
-          width: "100%",
-        }}
-      >
+      <div className="app-bottom-nav">
         {NAV.map(({ k, label, Icon, badge }) => (
           <button
             key={k}
             className={`navbtn ${tab === k ? "on" : ""}`}
             onClick={() => setTab(k)}
           >
-            <div className="nicon" style={{ position: "relative" }}>
+            <div className="nicon relative">
               <Icon size={17} />
               {badge > 0 ? (
-                <span
-                  style={{
-                    position: "absolute",
-                    top: -2,
-                    right: 3,
-                    background: "var(--clay)",
-                    color: "#fff",
-                    fontSize: 9,
-                    fontWeight: 800,
-                    borderRadius: 99,
-                    minWidth: 14,
-                    height: 14,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: "0 2px",
-                  }}
-                >
+                <span className="flex-center nav-badge">
                   {badge}
                 </span>
               ) : null}

@@ -129,13 +129,13 @@ export default function Profile({ me, updateAsync, updating, updateError, matchR
 
       <div className="card card-lg card-dark">
         <div className="flex-center-gap">
-          <div className="ring disp avatar-optic" style={{ width: 52, height: 52, fontSize: 20 }}>ME</div>
+          <div className="ring disp avatar-optic profile-avatar">ME</div>
           <div>
             <div className="disp header-title">{me.name}</div>
-            <div style={{ fontSize: 13, opacity: 0.85, fontWeight: 600 }}>{me.racket || "No racket set"} · {me.hand}-handed</div>
-            <div style={{ fontSize: 12, opacity: 0.65, fontWeight: 600, marginTop: 2 }}>{me.home_court || "No home court set"}</div>
+            <div className="profile-meta">{me.racket || "No racket set"} · {me.hand}-handed</div>
+            <div className="profile-meta-sub">{me.home_court || "No home court set"}</div>
           </div>
-          <div style={{ marginLeft: "auto", textAlign: "center" }}>
+          <div className="ml-auto text-center">
             <div className="profile-ntrp">{me.ntrp}</div>
             <div className="text-tiny">NTRP</div>
           </div>
@@ -143,7 +143,7 @@ export default function Profile({ me, updateAsync, updating, updateError, matchR
       </div>
 
       <Field label="Match history">
-        <div className="flex-center-gap" style={{ marginBottom: stats.played ? 16 : 12 }}>
+        <div className={`flex-center-gap ${stats.played ? "mb-16" : "mb-12"}`}>
           {stats.played === 0 ? (
             <div className="profile-stat-label">
               No matches yet — log one from a confirmed session in Calendar, or add a past match by hand.
@@ -165,20 +165,19 @@ export default function Profile({ me, updateAsync, updating, updateError, matchR
           <div className="profile-match-list">
             {(matchResults || []).map((r) => {
               const outcome = r.viewerOutcome === "won" ? "Won" : r.viewerOutcome === "lost" ? "Lost" : "No decision";
-              const outcomeColor = outcome === "Won" ? "var(--optic-d)" : outcome === "Lost" ? "var(--clay)" : "var(--muted)";
+              const outcomeColorClass = outcome === "Won" ? "text-optic-d" : outcome === "Lost" ? "text-clay" : "color-muted";
               const scoreText = formatSets(r);
               const myPartner = r.myTeam.find((p) => p.name !== me.name);
               const hasFreeformPlayer = Boolean(r.opponent_name || r.opponent2_name || r.partner_name);
               return (
-                <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0",
-                  borderTop: "1.5px solid var(--paper2)" }}>
+                <div key={r.id} className="items-center gap-10 match-row">
                   <Avatar name={r.opponents[0]?.name || "?"} size={32} />
                   <div className="profile-match-item">
                     <div className="profile-match-header">
                       vs {r.opponents.length ? names(r.opponents) : "Unknown"}
-                      {r.format === "Doubles" ? <span className="tag" style={{ background: "var(--paper2)", fontSize: 9 }}>Doubles</span> : null}
-                      <span className="profile-outcome" style={{ color: outcomeColor }}>
-                        <Trophy size={10} style={{ display: "inline", marginRight: 2, verticalAlign: -1 }} />{outcome}
+                      {r.format === "Doubles" ? <span className="tag tag-doubles">Doubles</span> : null}
+                      <span className={`profile-outcome ${outcomeColorClass}`}>
+                        <Trophy size={10} className="outcome-icon" />{outcome}
                       </span>
                     </div>
                     <div className="profile-match-subtext">
@@ -202,17 +201,15 @@ export default function Profile({ me, updateAsync, updating, updateError, matchR
       </Field>
 
       <Field label="Your name">
-        <div style={{ display: "flex", gap: 9 }}>
+        <div className="flex gap-9">
           <div className="flex-1">
-            <input className="inp inp-disabled" placeholder="First name" disabled={!editing}
-              style={{ opacity: editing ? 1 : 0.6 }}
+            <input className={`inp inp-disabled ${!editing ? "opacity-disabled" : ""}`} placeholder="First name" disabled={!editing}
               value={editing ? firstNameDraft : me.first_name}
               onChange={(e) => setFirstNameDraft(filterFirstName(e.target.value))} />
             <CharWarning show={firstNameWarn} />
           </div>
           <div className="flex-1">
-            <input className="inp inp-disabled" placeholder="Last name" disabled={!editing}
-              style={{ opacity: editing ? 1 : 0.6 }}
+            <input className={`inp inp-disabled ${!editing ? "opacity-disabled" : ""}`} placeholder="Last name" disabled={!editing}
               value={editing ? lastNameDraft : (me.last_name || "")}
               onChange={(e) => setLastNameDraft(filterLastName(e.target.value))} />
             <CharWarning show={lastNameWarn} />
@@ -224,15 +221,14 @@ export default function Profile({ me, updateAsync, updating, updateError, matchR
         <input type="range" min="2.5" max="5.0" step="0.5" disabled={!editing}
           value={editing ? ntrpDraft : me.ntrp}
           onChange={(e) => setNtrpDraft(Number(e.target.value))}
-          className="accent-clay"
-          style={{ width: "100%", opacity: editing ? 1 : 0.6 }} />
+          className={`accent-clay w-full ${!editing ? "opacity-disabled" : ""}`} />
         <div className="profile-slot-label">
           <span>2.5</span><span>5.0</span>
         </div>
       </Field>
 
       <Field label="Home court">
-        <select className="inp inp-disabled" disabled={!editing} style={{ opacity: editing ? 1 : 0.6 }}
+        <select className={`inp inp-disabled ${!editing ? "opacity-disabled" : ""}`} disabled={!editing}
           value={editing ? homeCourtDraft : (me.home_court || "")}
           onChange={(e) => setHomeCourtDraft(e.target.value)}>
           <option value="" disabled>Choose a court…</option>
@@ -241,63 +237,61 @@ export default function Profile({ me, updateAsync, updating, updateError, matchR
       </Field>
 
       <Field label="Racket">
-        <input className="inp inp-disabled" placeholder="e.g. Wilson Blade 100 v10" disabled={!editing}
-          style={{ opacity: editing ? 1 : 0.6 }}
+        <input className={`inp inp-disabled ${!editing ? "opacity-disabled" : ""}`} placeholder="e.g. Wilson Blade 100 v10" disabled={!editing}
           value={editing ? racketDraft : (me.racket || "")}
           onChange={(e) => setRacketDraft(filterRacket(e.target.value))} />
         <CharWarning show={racketWarn} />
       </Field>
 
       <Field label="Dominant hand">
-        <div style={{ display: "flex", gap: 7, flexWrap: "wrap", opacity: editing ? 1 : 0.6, pointerEvents: editing ? "auto" : "none" }}>
+        <div className={`flex gap-7 flex-wrap ${!editing ? "opacity-disabled pointer-events-none" : ""}`}>
           {HANDS.map((h) => (
-            <button key={h} className={`slot ${(editing ? handDraft : me.hand) === h ? "on" : ""}`}
-              style={{ padding: "7px 12px" }} onClick={() => setHandDraft(h)}>{h}</button>
+            <button key={h} className={`slot py-7 px-12 ${(editing ? handDraft : me.hand) === h ? "on" : ""}`}
+              onClick={() => setHandDraft(h)}>{h}</button>
           ))}
         </div>
       </Field>
 
       <Field label="What you play (pick one or both)">
-        <div style={{ display: "flex", gap: 7, flexWrap: "wrap", opacity: editing ? 1 : 0.6, pointerEvents: editing ? "auto" : "none" }}>
+        <div className={`flex gap-7 flex-wrap ${!editing ? "opacity-disabled pointer-events-none" : ""}`}>
           {FORMATS.map((f) => (
-            <button key={f} className={`slot ${formats.includes(f) ? "on" : ""}`}
-              style={{ padding: "7px 12px" }} onClick={() => toggleFormat(f)}>{f}</button>
+            <button key={f} className={`slot py-7 px-12 ${formats.includes(f) ? "on" : ""}`}
+              onClick={() => toggleFormat(f)}>{f}</button>
           ))}
         </div>
       </Field>
 
       <Field label="What you're after (pick as many as apply)">
-        <div style={{ display: "flex", gap: 7, flexWrap: "wrap", opacity: editing ? 1 : 0.6, pointerEvents: editing ? "auto" : "none" }}>
+        <div className={`flex gap-7 flex-wrap ${!editing ? "opacity-disabled pointer-events-none" : ""}`}>
           {INTENTS.map((it) => (
-            <button key={it} className={`slot ${intent.includes(it) ? "on" : ""}`}
-              style={{ padding: "7px 12px" }} onClick={() => toggleIntent(it)}>{it}</button>
+            <button key={it} className={`slot py-7 px-12 ${intent.includes(it) ? "on" : ""}`}
+              onClick={() => toggleIntent(it)}>{it}</button>
           ))}
         </div>
       </Field>
 
       <Field label="About you">
-        <textarea className="inp profile-bio-disabled" rows={3} placeholder="Playing style, what you're looking for, anything else worth knowing."
-          disabled={!editing} style={{ opacity: editing ? 1 : 0.6 }}
+        <textarea className={`inp profile-bio-disabled ${!editing ? "opacity-disabled" : ""}`} rows={3} placeholder="Playing style, what you're looking for, anything else worth knowing."
+          disabled={!editing}
           value={editing ? bioDraft : (me.bio || "")}
           onChange={(e) => setBioDraft(filterBio(e.target.value))} />
         <CharWarning show={bioWarn} />
       </Field>
 
       <Field label="Weekly availability">
-        <div style={{ display: "grid", gridTemplateColumns: "auto repeat(3,1fr)", gap: 5, alignItems: "center",
-          opacity: editing ? 1 : 0.6, pointerEvents: editing ? "auto" : "none" }}>
+        <div className={`grid availability-grid gap-5 ${!editing ? "opacity-disabled pointer-events-none" : ""}`}>
           <span />
           {PERIODS.map((p) => (
-            <div key={p} style={{ textAlign: "center", fontSize: 10, fontWeight: 700, color: "var(--muted)" }}>{p}</div>
+            <div key={p} className="text-center text-10 fw-700 color-muted">{p}</div>
           ))}
           {DAYS.map((d) => (
             <React.Fragment key={d}>
-              <span style={{ fontSize: 11, fontWeight: 700 }}>{d}</span>
+              <span className="text-11 fw-700">{d}</span>
               {PERIODS.map((p) => {
                 const s = `${d}-${p}`;
                 return (
-                  <button key={s} className={`slot ${slots.includes(s) ? "on" : ""}`}
-                    style={{ height: 28, padding: 0 }} onClick={() => toggleSlot(s)}>
+                  <button key={s} className={`slot h-28 p-0 ${slots.includes(s) ? "on" : ""}`}
+                    onClick={() => toggleSlot(s)}>
                     {slots.includes(s) ? "●" : ""}
                   </button>
                 );
@@ -311,11 +305,11 @@ export default function Profile({ me, updateAsync, updating, updateError, matchR
       <SuccessNote show={justSaved} label="Profile saved." />
 
       {editing ? (
-        <div className="card card-section flex-center" style={{ gap: 10 }}>
-          <button className="btn btn-y flex-1" style={{ justifyContent: "center" }} disabled={updating} onClick={saveAll}>
+        <div className="card card-section flex-center gap-10">
+          <button className="btn btn-y flex-1 justify-center" disabled={updating} onClick={saveAll}>
             <Check size={15} />{updating ? "Saving…" : "Save changes"}
           </button>
-          <button className="btn btn-ghost flex-1" style={{ justifyContent: "center", border: "1.5px solid var(--ink)" }}
+          <button className="btn btn-ghost flex-1 justify-center border-ink"
             disabled={updating} onClick={cancelEdit}>
             <X size={15} />Cancel
           </button>
@@ -327,7 +321,7 @@ export default function Profile({ me, updateAsync, updating, updateError, matchR
 
 const Stat = ({ label, value }) => (
   <div>
-    <div className="disp" style={{ fontSize: 22, fontWeight: 800 }}>{value}</div>
-    <div className="text-tiny" style={{ textTransform: "uppercase", letterSpacing: ".05em" }}>{label}</div>
+    <div className="disp text-22 fw-800">{value}</div>
+    <div className="text-tiny uppercase tracking-05">{label}</div>
   </div>
 );

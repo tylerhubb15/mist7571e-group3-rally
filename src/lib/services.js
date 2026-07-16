@@ -318,10 +318,10 @@ export const matchResults = {
       const onTeam1 = r.reported_by === userId || team1.some((p) => p.id === userId);
 
       let viewerOutcome;
-      if (r.outcome != null) {
+      if (r.outcome !== null) {
         viewerOutcome = onTeam1 ? r.outcome : r.outcome === "won" ? "lost" : r.outcome === "lost" ? "won" : "none";
       } else {
-        viewerOutcome = r.winner_id == null ? "none" : r.winner_id === userId ? "won" : "lost";
+        viewerOutcome = r.winner_id === null ? "none" : r.winner_id === userId ? "won" : "lost";
       }
 
       return {

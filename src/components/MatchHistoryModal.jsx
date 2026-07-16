@@ -17,11 +17,11 @@ function PlayerSlot({ label, required, slot, setSlot, others, excludeIds }) {
   const available = others.filter((p) => !excludeIds.includes(p.id));
   const [nameWarn, filterName] = useCharWarning(sanitizeText);
   return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 7 }}>
+    <div className="mb-14">
+      <div className="text-11 fw-700 mb-7">
         {label}{required ? "" : " (OPTIONAL)"}
       </div>
-      <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+      <div className="flex gap-6 mb-8">
         <button type="button" className={`slot ${slot.mode === "rally" ? "on" : ""}`}
           onClick={() => setSlot({ ...slot, mode: "rally" })}>On Rally</button>
         <button type="button" className={`slot ${slot.mode === "freeform" ? "on" : ""}`}
@@ -62,7 +62,7 @@ function PlayerSlot({ label, required, slot, setSlot, others, excludeIds }) {
  */
 export default function MatchHistoryModal({ me, session, match, onClose, onConfirm, sending, error }) {
   const isEdit = !!match;
-  const linkedToSession = isEdit ? match.session_id != null : !!session;
+  const linkedToSession = isEdit ? match.session_id !== null : !!session;
   const { data: allPlayers } = useAllProfiles();
   const others = (allPlayers || []).filter((p) => p.id !== me.id);
 
@@ -156,14 +156,12 @@ export default function MatchHistoryModal({ me, session, match, onClose, onConfi
   const themLabel = opponentsDisplay.length ? opponentsDisplay.map((p) => p.name.split(" ")[0]).join(" & ") : "Opponent";
 
   return (
-    <div className="absolute" style={{ inset: 0, background: "rgba(21,50,42,.5)", zIndex: 50 }} onClick={onClose}>
-      <div className="flex-center" style={{ height: "100vh", alignItems: "flex-end", justifyContent: "center" }}>
-        <div className="card pop" onClick={(e) => e.stopPropagation()}
-          style={{ width: "100%", maxWidth: 460, padding: 22, borderRadius: "20px 20px 0 0", boxShadow: "none",
-            borderBottom: "none", maxHeight: "88vh", overflowY: "auto" }}>
-          <div className="flex-center-gap" style={{ marginBottom: 4 }}>
+    <div className="absolute modal-overlay" onClick={onClose}>
+      <div className="flex-center modal-backdrop">
+        <div className="card pop modal-sheet modal-sheet-scroll" onClick={(e) => e.stopPropagation()}>
+          <div className="flex-center-gap mb-4">
             {opp1 ? <Avatar name={opp1.name} size={40} />
-              : <div className="ring" style={{ width: 40, height: 40, background: "var(--paper2)" }} />}
+              : <div className="ring avatar-placeholder" />}
             <div className="flex-1">
               <div className="disp header-title">
                 {isEdit ? "Edit match" : session ? `Log result vs ${themLabel}` : "Log a past match"}
@@ -172,12 +170,12 @@ export default function MatchHistoryModal({ me, session, match, onClose, onConfi
             </div>
             <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={16} /></button>
           </div>
-          <div className="divider" style={{ margin: "14px 0" }} />
+          <div className="divider my-14" />
 
           {!linkedToSession ? (
             <>
               <div className="text-label mb-8">FORMAT</div>
-              <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+              <div className="flex gap-6 mb-16">
                 {FORMATS.map((f) => (
                   <button key={f} className={`slot ${format === f ? "on" : ""}`} onClick={() => setFormat(f)}>{f}</button>
                 ))}
@@ -188,7 +186,7 @@ export default function MatchHistoryModal({ me, session, match, onClose, onConfi
           {linkedToSession ? (
             <div className="mb-16">
               <div className="text-label mb-8">OPPONENT{opponentsDisplay.length > 1 ? "S" : ""}</div>
-              <div style={{ fontSize: 14, fontWeight: 700 }}>
+              <div className="text-14 fw-700">
                 {themLabel}
                 <span className="text-muted text-small"> · from a booked session, can't change</span>
               </div>
@@ -216,7 +214,7 @@ export default function MatchHistoryModal({ me, session, match, onClose, onConfi
             onChange={(e) => setPlayedAt(e.target.value)} />
 
           <div className="text-label mb-8">WHO WON?</div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
+          <div className="flex gap-6 flex-wrap mb-16">
             <button className={`slot ${winner === "me" ? "on" : ""}`} onClick={() => setWinner("me")}>{youLabel}</button>
             <button className={`slot ${winner === "opponent" ? "on" : ""}`} disabled={!opp1}
               onClick={() => opp1 && setWinner("opponent")}>{themLabel}</button>
@@ -224,16 +222,16 @@ export default function MatchHistoryModal({ me, session, match, onClose, onConfi
           </div>
 
           <div className="text-label mb-8">SCORE (OPTIONAL)</div>
-          <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
+          <div className="flex gap-8 mb-18">
             <input className="inp" placeholder="Set 1 — 6-4" value={set1} onChange={(e) => setSet1(e.target.value)} />
             <input className="inp" placeholder="Set 2 — 6-3" value={set2} onChange={(e) => setSet2(e.target.value)} />
             <input className="inp" placeholder="Set 3 / TB — 10-7" value={set3} onChange={(e) => setSet3(e.target.value)} />
           </div>
 
           <ErrorNote error={error} label="Couldn't save that match — try again." />
-          <div style={{ display: "flex", gap: 10 }}>
+          <div className="flex gap-10">
             <button className="btn btn-ghost btn-full" onClick={onClose}>Cancel</button>
-            <button className="btn btn-o btn-full" style={{ flex: 2 }} disabled={sending || !canSubmit} onClick={submit}>
+            <button className="btn btn-o btn-full flex-2" disabled={sending || !canSubmit} onClick={submit}>
               <Trophy size={14} /> {sending ? "Saving…" : isEdit ? "Save changes" : session ? "Save result" : "Add match"}
             </button>
           </div>

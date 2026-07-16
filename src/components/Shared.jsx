@@ -7,7 +7,7 @@ export const ScoreRing = ({ value, size = 58 }) => {
     <div className="ring flex-shrink-0" style={{ width: size, height: size,
       background: `conic-gradient(${col} ${value * 3.6}deg, var(--paper2) 0deg)` }}>
       <div className="ring" style={{ width: size - 10, height: size - 10, background: "#fff" }}>
-        <span className="disp" style={{ fontSize: size * 0.29, fontWeight: 800 }}>{value}</span>
+        <span className="disp fw-800" style={{ fontSize: size * 0.29 }}>{value}</span>
       </div>
     </div>
   );
@@ -25,8 +25,8 @@ export const Header = ({ eyebrow, title, sub }) => (
     <div className="tag header-tag mb-8">
       <Sparkles size={12} />{eyebrow}
     </div>
-    <h1 className="disp header-title" style={{ margin: "0 0 4px" }}>{title}</h1>
-    {sub ? <p className="header-subtitle" style={{ margin: 0 }}>{sub}</p> : null}
+    <h1 className="disp header-title header-title-margin">{title}</h1>
+    {sub ? <p className="header-subtitle m-0">{sub}</p> : null}
   </div>
 );
 
