@@ -139,23 +139,37 @@ export default function CourtsMap({ me, update }) {
     circlesRef.current.forEach((c) => c.setCenter({ lat: userLat, lng: userLng }));
   }, [mapReady, userLat, userLng]);
 
-  // (Re)draw court markers once the map is ready and/or player counts change
+  // Create court markers once the map is ready, then just update each
+  // marker's icon/label in place when player counts or selection change —
+  // avoids tearing down and rebuilding every marker (and re-encoding every
+  // icon) on every single pin tap.
   useEffect(() => {
     if (!mapReady || !mapRef.current || !MarkerRef.current) return;
     const Marker = MarkerRef.current;
-    markersRef.current.forEach((m) => m.setMap(null));
-    markersRef.current = COURT_LOCS.map((c) => {
-      const pCount = list.filter((p) => p.home_court === c.name).length;
-      const isSelected = selected === c.id;
-      const marker = new Marker({
-        map: mapRef.current,
-        position: { lat: c.lat, lng: c.lng },
-        icon: pinIcon(isSelected ? "#C75D3A" : "#15322A", String(pCount || c.courts)),
-        label: { text: String(pCount || c.courts), color: isSelected ? "#fff" : "#C9F03C", fontSize: "11px", fontWeight: "800" },
-        title: c.name,
+
+    if (markersRef.current.length === 0) {
+      markersRef.current = COURT_LOCS.map((c) => {
+        const marker = new Marker({
+          map: mapRef.current,
+          position: { lat: c.lat, lng: c.lng },
+          title: c.name,
+        });
+        marker.addListener("click", () => setSelected((prev) => (prev === c.id ? null : c.id)));
+        return marker;
       });
-      marker.addListener("click", () => setSelected(isSelected ? null : c.id));
-      return marker;
+    }
+
+    const countsByCourt = new Map();
+    for (const p of list) {
+      countsByCourt.set(p.home_court, (countsByCourt.get(p.home_court) || 0) + 1);
+    }
+
+    COURT_LOCS.forEach((c, i) => {
+      const pCount = countsByCourt.get(c.name) || 0;
+      const isSelected = selected === c.id;
+      const marker = markersRef.current[i];
+      marker.setIcon(pinIcon(isSelected ? "#C75D3A" : "#15322A", String(pCount || c.courts)));
+      marker.setLabel({ text: String(pCount || c.courts), color: isSelected ? "#fff" : "#C9F03C", fontSize: "11px", fontWeight: "800" });
     });
   }, [mapReady, list, selected]);
 
