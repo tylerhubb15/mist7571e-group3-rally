@@ -49,15 +49,14 @@ export default function Auth() {
   };
 
   return (
-    <div className="rally court-bg" style={{ minHeight: "100vh", display: "flex",
-      alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
+    <div className="rally court-bg flex-center" style={{ minHeight: "100vh", padding: "24px 16px" }}>
       <div style={{ width: "100%", maxWidth: 400 }}>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 26 }}>
-          <div className="ring" style={{ width: 44, height: 44, background: "var(--optic)", marginBottom: 10 }}>
+        <div className="flex-col-center mb-26">
+          <div className="logo-ring flex-center mb-8" style={{ width: 44, height: 44 }}>
             <Activity size={22} color="var(--ink)" />
           </div>
           <span className="disp" style={{ fontSize: 28, fontWeight: 800 }}>RALLY</span>
-          <span style={{ color: "var(--muted)", fontSize: 12, fontWeight: 700 }}>find your hit</span>
+          <span className="text-muted-sm">find your hit</span>
         </div>
 
         <div className="card pop" style={{ padding: 24 }}>
@@ -69,37 +68,36 @@ export default function Auth() {
           ) : null}
 
           {checkEmail ? (
-            <div style={{ textAlign: "center", padding: "20px 4px" }}>
-              <MailCheck size={30} style={{ margin: "0 auto 12px" }} color="var(--optic-d)" />
-              <div className="disp" style={{ fontSize: 19, fontWeight: 800, marginBottom: 6 }}>Check your email</div>
-              <p style={{ fontSize: 13.5, color: "var(--muted)", fontWeight: 600, margin: 0 }}>
+            <div className="modal-container">
+              <MailCheck size={30} className="modal-icon" color="var(--optic-d)" />
+              <div className="disp modal-heading">Check your email</div>
+              <p className="modal-text">
                 We sent a confirmation link to <strong style={{ color: "var(--ink)" }}>{email}</strong>.
                 Click it to activate your account, then sign in below.
               </p>
-              <button className="btn btn-ghost" style={{ marginTop: 16, justifyContent: "center", width: "100%" }}
+              <button className="btn btn-ghost btn-full mt-16"
                 onClick={() => { setCheckEmail(false); setMode("signin"); }}>
                 Back to sign in
               </button>
             </div>
           ) : (
             <>
-              <button className="btn btn-o" style={{ width: "100%", justifyContent: "center", marginBottom: 9 }}
+              <button className="btn btn-o btn-full mb-9"
                 disabled={oauthLoading !== null} onClick={() => withOAuth("google")}>
                 {oauthLoading === "google" ? <Loader2 size={16} className="spin" /> : <GoogleG />}
                 Continue with Google
               </button>
-              <button className="btn btn-ghost" style={{ width: "100%", justifyContent: "center", marginBottom: 16,
-                border: "1.5px solid var(--ink)" }}
+              <button className="btn btn-ghost btn-full mb-16"
                 disabled={!APPLE_OAUTH_ENABLED || oauthLoading !== null}
                 onClick={() => withOAuth("apple")}>
                 <AppleLogo />
                 Continue with Apple{!APPLE_OAUTH_ENABLED ? " — coming soon" : ""}
               </button>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "4px 0 18px" }}>
-                <div className="divider" style={{ flex: 1 }} />
-                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)" }}>OR</span>
-                <div className="divider" style={{ flex: 1 }} />
+              <div className="modal-divider-wrapper">
+                <div className="divider flex-1" />
+                <span className="text-muted-sm">OR</span>
+                <div className="divider flex-1" />
               </div>
 
               <ErrorNote error={error} />
@@ -107,38 +105,38 @@ export default function Auth() {
               <form onSubmit={submit}>
                 {mode === "signup" ? (
                   <div style={{ display: "flex", gap: 9, marginBottom: 11 }}>
-                    <div style={{ flex: 1, position: "relative" }}>
-                      <User size={15} style={{ position: "absolute", left: 12, top: 12, color: "var(--muted)" }} />
-                      <input className="inp" style={{ paddingLeft: 34 }} placeholder="First name"
+                    <div className="inp-icon-wrapper flex-1">
+                      <User size={15} className="inp-icon" />
+                      <input className="inp inp-with-icon" placeholder="First name"
                         value={firstName} onChange={(e) => setFirstName(filterFirstName(e.target.value))} required />
                       <CharWarning show={firstNameWarn} />
                     </div>
-                    <div style={{ flex: 1 }}>
+                    <div className="flex-1">
                       <input className="inp" placeholder="Last name"
                         value={lastName} onChange={(e) => setLastName(filterLastName(e.target.value))} required />
                       <CharWarning show={lastNameWarn} />
                     </div>
                   </div>
                 ) : null}
-                <div style={{ marginBottom: 11, position: "relative" }}>
-                  <Mail size={15} style={{ position: "absolute", left: 12, top: 12, color: "var(--muted)" }} />
-                  <input className="inp" style={{ paddingLeft: 34 }} type="email" placeholder="Email"
+                <div className="inp-icon-wrapper mb-11">
+                  <Mail size={15} className="inp-icon" />
+                  <input className="inp inp-with-icon" type="email" placeholder="Email"
                     value={email} onChange={(e) => setEmail(e.target.value)} required />
                 </div>
-                <div style={{ marginBottom: 16, position: "relative" }}>
-                  <Lock size={15} style={{ position: "absolute", left: 12, top: 12, color: "var(--muted)" }} />
-                  <input className="inp" style={{ paddingLeft: 34 }} type="password"
+                <div className="inp-icon-wrapper mb-16">
+                  <Lock size={15} className="inp-icon" />
+                  <input className="inp inp-with-icon" type="password"
                     placeholder={mode === "signup" ? "Password (min 6 characters)" : "Password"}
                     value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} required />
                 </div>
-                <button className="btn btn-y" type="submit" style={{ width: "100%", justifyContent: "center" }}
+                <button className="btn btn-y btn-full"
                   disabled={formLoading}>
                   {formLoading ? <Loader2 size={16} className="spin" /> : null}
                   {mode === "signup" ? "Create account" : "Sign in"}
                 </button>
               </form>
 
-              <div style={{ textAlign: "center", marginTop: 16, fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>
+              <div className="text-center text-muted mt-16" style={{ fontSize: 13 }}>
                 {mode === "signup" ? "Already have an account?" : "New to Rally?"}{" "}
                 <button className="btn btn-ghost" style={{ padding: "2px 6px", fontWeight: 800, color: "var(--ink)" }}
                   onClick={() => { setError(null); setMode(mode === "signup" ? "signin" : "signup"); }}>

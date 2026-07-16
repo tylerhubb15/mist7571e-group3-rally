@@ -156,86 +156,87 @@ export default function MatchHistoryModal({ me, session, match, onClose, onConfi
   const themLabel = opponentsDisplay.length ? opponentsDisplay.map((p) => p.name.split(" ")[0]).join(" & ") : "Opponent";
 
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(21,50,42,.5)",
-      zIndex: 50, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-      <div className="card pop" onClick={(e) => e.stopPropagation()}
-        style={{ width: "100%", maxWidth: 460, padding: 22, borderRadius: "20px 20px 0 0", boxShadow: "none",
-          borderBottom: "none", maxHeight: "88vh", overflowY: "auto" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-          {opp1 ? <Avatar name={opp1.name} size={40} />
-            : <div className="ring" style={{ width: 40, height: 40, background: "var(--paper2)" }} />}
-          <div style={{ flex: 1 }}>
-            <div className="disp" style={{ fontSize: 19, fontWeight: 800 }}>
-              {isEdit ? "Edit match" : session ? `Log result vs ${themLabel}` : "Log a past match"}
+    <div className="absolute" style={{ inset: 0, background: "rgba(21,50,42,.5)", zIndex: 50 }} onClick={onClose}>
+      <div className="flex-center" style={{ height: "100vh", alignItems: "flex-end", justifyContent: "center" }}>
+        <div className="card pop" onClick={(e) => e.stopPropagation()}
+          style={{ width: "100%", maxWidth: 460, padding: 22, borderRadius: "20px 20px 0 0", boxShadow: "none",
+            borderBottom: "none", maxHeight: "88vh", overflowY: "auto" }}>
+          <div className="flex-center-gap" style={{ marginBottom: 4 }}>
+            {opp1 ? <Avatar name={opp1.name} size={40} />
+              : <div className="ring" style={{ width: 40, height: 40, background: "var(--paper2)" }} />}
+            <div className="flex-1">
+              <div className="disp header-title">
+                {isEdit ? "Edit match" : session ? `Log result vs ${themLabel}` : "Log a past match"}
+              </div>
+              <div className="text-muted text-small">Stats only — doesn't change anyone's NTRP.</div>
             </div>
-            <div style={{ fontSize: 13, color: "var(--muted)", fontWeight: 600 }}>Stats only — doesn't change anyone's NTRP.</div>
+            <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={16} /></button>
           </div>
-          <button className="btn btn-ghost" style={{ padding: 6 }} onClick={onClose}><X size={16} /></button>
-        </div>
-        <div className="divider" style={{ margin: "14px 0" }} />
+          <div className="divider" style={{ margin: "14px 0" }} />
 
-        {!linkedToSession ? (
-          <>
-            <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 7 }}>FORMAT</div>
-            <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
-              {FORMATS.map((f) => (
-                <button key={f} className={`slot ${format === f ? "on" : ""}`} onClick={() => setFormat(f)}>{f}</button>
-              ))}
-            </div>
-          </>
-        ) : null}
+          {!linkedToSession ? (
+            <>
+              <div className="text-label mb-8">FORMAT</div>
+              <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+                {FORMATS.map((f) => (
+                  <button key={f} className={`slot ${format === f ? "on" : ""}`} onClick={() => setFormat(f)}>{f}</button>
+                ))}
+              </div>
+            </>
+          ) : null}
 
-        {linkedToSession ? (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 7 }}>OPPONENT{opponentsDisplay.length > 1 ? "S" : ""}</div>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>
-              {themLabel}
-              <span style={{ color: "var(--muted)", fontWeight: 600 }}> · from a booked session, can't change</span>
+          {linkedToSession ? (
+            <div className="mb-16">
+              <div className="text-label mb-8">OPPONENT{opponentsDisplay.length > 1 ? "S" : ""}</div>
+              <div style={{ fontSize: 14, fontWeight: 700 }}>
+                {themLabel}
+                <span className="text-muted text-small"> · from a booked session, can't change</span>
+              </div>
+              {partner ? (
+                <div className="text-muted text-small mt-8">Your partner: {partner.name}</div>
+              ) : null}
             </div>
-            {partner ? (
-              <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600, marginTop: 4 }}>Your partner: {partner.name}</div>
-            ) : null}
+          ) : (
+            <>
+              <PlayerSlot label="Opponent 1" required slot={opp1Slot} setSlot={setOpp1Slot}
+                others={others} excludeIds={excludeIds(opp1Slot.id)} />
+              {format === "Doubles" ? (
+                <>
+                  <PlayerSlot label="Opponent 2" slot={opp2Slot} setSlot={setOpp2Slot}
+                    others={others} excludeIds={excludeIds(opp2Slot.id)} />
+                  <PlayerSlot label="Your partner" slot={partnerSlot} setSlot={setPartnerSlot}
+                    others={others} excludeIds={excludeIds(partnerSlot.id)} />
+                </>
+              ) : null}
+            </>
+          )}
+
+          <div className="text-label mb-8">DATE PLAYED</div>
+          <input type="date" className="inp mb-16" value={playedAt} max={today()}
+            onChange={(e) => setPlayedAt(e.target.value)} />
+
+          <div className="text-label mb-8">WHO WON?</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
+            <button className={`slot ${winner === "me" ? "on" : ""}`} onClick={() => setWinner("me")}>{youLabel}</button>
+            <button className={`slot ${winner === "opponent" ? "on" : ""}`} disabled={!opp1}
+              onClick={() => opp1 && setWinner("opponent")}>{themLabel}</button>
+            <button className={`slot ${winner === "none" ? "on" : ""}`} onClick={() => setWinner("none")}>No winner / practice</button>
           </div>
-        ) : (
-          <>
-            <PlayerSlot label="Opponent 1" required slot={opp1Slot} setSlot={setOpp1Slot}
-              others={others} excludeIds={excludeIds(opp1Slot.id)} />
-            {format === "Doubles" ? (
-              <>
-                <PlayerSlot label="Opponent 2" slot={opp2Slot} setSlot={setOpp2Slot}
-                  others={others} excludeIds={excludeIds(opp2Slot.id)} />
-                <PlayerSlot label="Your partner" slot={partnerSlot} setSlot={setPartnerSlot}
-                  others={others} excludeIds={excludeIds(partnerSlot.id)} />
-              </>
-            ) : null}
-          </>
-        )}
 
-        <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 7 }}>DATE PLAYED</div>
-        <input type="date" className="inp" value={playedAt} max={today()}
-          onChange={(e) => setPlayedAt(e.target.value)} style={{ marginBottom: 16 }} />
+          <div className="text-label mb-8">SCORE (OPTIONAL)</div>
+          <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
+            <input className="inp" placeholder="Set 1 — 6-4" value={set1} onChange={(e) => setSet1(e.target.value)} />
+            <input className="inp" placeholder="Set 2 — 6-3" value={set2} onChange={(e) => setSet2(e.target.value)} />
+            <input className="inp" placeholder="Set 3 / TB — 10-7" value={set3} onChange={(e) => setSet3(e.target.value)} />
+          </div>
 
-        <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 7 }}>WHO WON?</div>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
-          <button className={`slot ${winner === "me" ? "on" : ""}`} onClick={() => setWinner("me")}>{youLabel}</button>
-          <button className={`slot ${winner === "opponent" ? "on" : ""}`} disabled={!opp1}
-            onClick={() => opp1 && setWinner("opponent")}>{themLabel}</button>
-          <button className={`slot ${winner === "none" ? "on" : ""}`} onClick={() => setWinner("none")}>No winner / practice</button>
-        </div>
-
-        <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 7 }}>SCORE (OPTIONAL)</div>
-        <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
-          <input className="inp" placeholder="Set 1 — 6-4" value={set1} onChange={(e) => setSet1(e.target.value)} />
-          <input className="inp" placeholder="Set 2 — 6-3" value={set2} onChange={(e) => setSet2(e.target.value)} />
-          <input className="inp" placeholder="Set 3 / TB — 10-7" value={set3} onChange={(e) => setSet3(e.target.value)} />
-        </div>
-
-        <ErrorNote error={error} label="Couldn't save that match — try again." />
-        <div style={{ display: "flex", gap: 10 }}>
-          <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center" }} onClick={onClose}>Cancel</button>
-          <button className="btn btn-o" style={{ flex: 2, justifyContent: "center" }} disabled={sending || !canSubmit} onClick={submit}>
-            <Trophy size={14} /> {sending ? "Saving…" : isEdit ? "Save changes" : session ? "Save result" : "Add match"}
-          </button>
+          <ErrorNote error={error} label="Couldn't save that match — try again." />
+          <div style={{ display: "flex", gap: 10 }}>
+            <button className="btn btn-ghost btn-full" onClick={onClose}>Cancel</button>
+            <button className="btn btn-o btn-full" style={{ flex: 2 }} disabled={sending || !canSubmit} onClick={submit}>
+              <Trophy size={14} /> {sending ? "Saving…" : isEdit ? "Save changes" : session ? "Save result" : "Add match"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

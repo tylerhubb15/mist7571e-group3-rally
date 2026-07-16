@@ -48,21 +48,21 @@ export default function AICoach({ me }) {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 180px)", minHeight: 400 }}>
+    <div className="flex-col" style={{ height: "calc(100vh - 180px)", minHeight: 400 }}>
       <Header eyebrow="AI Coach" title="Ask your coach" sub="Get personalised tips to level up your game." />
 
       {/* Chat messages */}
-      <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, paddingBottom: 8 }}>
+      <div className="flex-col flex-1" style={{ overflowY: "auto", gap: 12, paddingBottom: 8 }}>
         {messages.length === 0 ? (
           <div>
-            <div className="card" style={{ padding: 16, textAlign: "center", marginBottom: 16 }}>
+            <div className="card mb-16" style={{ padding: 16 }}>
               <Sparkles size={28} style={{ margin: "0 auto 8px", display: "block", color: "var(--optic)" }} />
               <div className="disp" style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>Your AI tennis coach</div>
-              <div style={{ fontSize: 13, color: "var(--muted)", fontWeight: 600 }}>
+              <div className="text-muted" style={{ fontSize: 13 }}>
                 Ask anything — technique, tactics, match prep, or how to beat a specific style.
               </div>
             </div>
-            <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", color: "var(--muted)", marginBottom: 8 }}>
+            <div className="text-muted" style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", marginBottom: 8 }}>
               Try asking
             </div>
             <div style={{ display: "grid", gap: 7 }}>
@@ -90,8 +90,8 @@ export default function AICoach({ me }) {
               border: m.role === "coach" ? "1.5px solid var(--ink)" : "none",
             }}>
               {m.role === "coach" ? (
-                <div style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
-                  <Sparkles size={13} style={{ marginTop: 3, flexShrink: 0, color: "var(--optic)" }} />
+                <div className="flex-start gap-7 flex-shrink-0">
+                  <Sparkles size={13} style={{ marginTop: 3, color: "var(--optic)" }} />
                   <span>{m.content}</span>
                 </div>
               ) : m.content}
@@ -103,7 +103,7 @@ export default function AICoach({ me }) {
           <div style={{ display: "flex", justifyContent: "flex-start" }}>
             <div style={{ padding: "10px 13px", borderRadius: "14px 14px 14px 4px", background: "var(--paper2)", border: "1.5px solid var(--ink)", display: "flex", alignItems: "center", gap: 6 }}>
               <Sparkles size={13} style={{ color: "var(--optic)" }} />
-              <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 600 }}>Thinking…</span>
+              <span className="text-muted" style={{ fontSize: 13 }}>Thinking…</span>
             </div>
           </div>
         ) : null}
@@ -114,8 +114,7 @@ export default function AICoach({ me }) {
       {/* Input bar */}
       <div style={{ display: "flex", gap: 8, paddingTop: 10, borderTop: "2px solid var(--ink)" }}>
         <input
-          className="input"
-          style={{ flex: 1 }}
+          className="inp flex-1"
           placeholder="Ask your coach…"
           value={input}
           onChange={(e) => setInput(e.target.value)}
