@@ -260,12 +260,18 @@ export function useConversations(userId) {
   return useQuery({
     queryKey: ["conversations", userId],
     queryFn: async () => {
-      // Fetch all messages where the user is involved
+      // Bounded to the most recent messages across all threads — enough to
+      // build the thread list + preview without re-downloading the user's
+      // entire message history on every 15s poll. Threads whose only
+      // activity falls outside this window (or unread counts beyond it)
+      // won't show up here; a DISTINCT ON (partner)-style server-side
+      // query would be the precise long-term fix.
       const { data, error } = await supabase
         .from("messages")
         .select("*, sender:profiles!messages_sender_id_fkey(id,name,avatar_url,ntrp), recipient:profiles!messages_recipient_id_fkey(id,name,avatar_url,ntrp)")
         .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(200);
       if (error) throw error;
 
       // Group by conversation partner, keep only the latest message per thread

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { MapPin, Target, ChevronRight, Zap, MessageCircle, Sparkles } from "lucide-react";
 
 function PlayerBrief({ player }) {
@@ -54,6 +54,13 @@ import { ScoreRing, Avatar, Header, Loading, ErrorNote } from "./Shared.jsx";
 export default function Discover({ me, onPropose, onMessage }) {
   const { data: matches, isLoading, error } = useMatches(me.id);
   const [open, setOpen] = useState(null);
+  // Score each match once when matches/me actually change, instead of on
+  // every render — expanding one card's detail panel (an `open` state
+  // change) shouldn't recompute every other card's score breakdown.
+  const scoredMatches = useMemo(
+    () => (matches || []).map((p) => ({ ...p, parts: scoreParts(me, p) })),
+    [matches, me]
+  );
 
   return (
     <div>
@@ -75,8 +82,8 @@ export default function Discover({ me, onPropose, onMessage }) {
       ) : null}
 
       <div className="grid gap-13">
-        {(matches || []).map((p, i) => {
-          const parts = scoreParts(me, p);
+        {scoredMatches.map((p, i) => {
+          const parts = p.parts;
           return (
             <div key={p.profile_id} className="card lift rise p-16" style={{ animationDelay: `${i * 55}ms` }}>
               <div className="flex-center-gap">

@@ -43,6 +43,12 @@ create table if not exists public.profiles (
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
+-- Lets find_matches() narrow to a lat/lng bounding box via an index range
+-- scan before it computes exact haversine distance, instead of running
+-- the trig math over every row in the table. A PostGIS geography column +
+-- GiST index (see the EXTENSIONS note above) is the more precise long-term
+-- fix; this needs no extra extension and is a drop-in win today.
+create index if not exists profiles_lat_lng_idx on public.profiles(lat, lng);
 
 -- Migration for databases that already have `profiles` without `formats`.
 alter table public.profiles add column if not exists formats text[] not null default array['Singles'];
@@ -98,6 +104,12 @@ create table if not exists public.sessions (
 );
 create index if not exists sessions_proposer_idx on public.sessions(proposer_id);
 create index if not exists sessions_partner_idx  on public.sessions(partner_id);
+-- Doubles-only columns, but sessions_select/sessions_update RLS checks
+-- auth.uid() against all four participant columns on every query — without
+-- these, a doubles player who's only in one of these two slots forces a
+-- scan since only 2 of the 4 OR-ed columns would otherwise be indexed.
+create index if not exists sessions_proposer_partner_idx on public.sessions(proposer_partner_id);
+create index if not exists sessions_opponent_partner_idx on public.sessions(opponent_partner_id);
 
 -- Migration for databases that already have `sessions` in the old
 -- 2-player-only shape.
@@ -174,6 +186,12 @@ create table if not exists public.match_results (
 );
 create index if not exists match_results_session_idx on public.match_results(session_id);
 create index if not exists match_results_opponent_idx on public.match_results(opponent_id);
+-- match_results_select RLS checks auth.uid() in (reported_by, opponent_id,
+-- partner_id, opponent2_id) on every read; reported_by is in the original
+-- table shape so it's safe to index here (partner_id/opponent2_id are
+-- added below by a later migration for older databases — indexed there
+-- instead, once the columns are guaranteed to exist).
+create index if not exists match_results_reported_by_idx on public.match_results(reported_by);
 
 -- Migration for databases that already have an older shape — safe to
 -- re-run, all guarded. Existing session-linked rows' free-text `score`
@@ -192,6 +210,10 @@ alter table public.match_results add column if not exists opponent2_id uuid refe
 alter table public.match_results add column if not exists opponent2_name text;
 alter table public.match_results add column if not exists partner_id uuid references public.profiles(id) on delete cascade;
 alter table public.match_results add column if not exists partner_name text;
+-- partner_id/opponent2_id only exist from this point on (fresh installs
+-- already have them from the create table above; this covers upgrades).
+create index if not exists match_results_partner_idx   on public.match_results(partner_id);
+create index if not exists match_results_opponent2_idx on public.match_results(opponent2_id);
 
 do $$
 begin
@@ -328,7 +350,10 @@ begin
 
   return query
   with
-  -- Haversine distance in miles (no PostGIS required)
+  -- Haversine distance in miles (no PostGIS required). The bounding-box
+  -- filter below runs first and uses profiles_lat_lng_idx to narrow the
+  -- candidate set via an index range scan, so acos/cos/sin only run on
+  -- profiles roughly within range instead of every row in the table.
   distances as (
     select
       p.id,
@@ -341,6 +366,12 @@ begin
     from public.profiles p
     where p.id <> p_user_id
       and p.lat is not null and p.lng is not null
+      -- 1 degree latitude ≈ 69mi; longitude degrees shrink with cos(lat).
+      -- 25% buffer matches the exact-distance filter applied below.
+      and p.lat between v_me.lat - (v_me.radius_mi * 1.25) / 69.0
+                     and v_me.lat + (v_me.radius_mi * 1.25) / 69.0
+      and p.lng between v_me.lng - (v_me.radius_mi * 1.25) / (69.0 * cos(radians(v_me.lat)))
+                     and v_me.lng + (v_me.radius_mi * 1.25) / (69.0 * cos(radians(v_me.lat)))
   ),
   -- How many slots overlap between this user and each candidate
   slot_overlap as (
@@ -415,13 +446,19 @@ alter table public.match_results     enable row level security;
 alter table public.messages          enable row level security;
 
 -- Profiles: anyone authenticated can read; only owner can write
+drop policy if exists "profiles_select" on public.profiles;
 create policy "profiles_select" on public.profiles for select to authenticated using (true);
+drop policy if exists "profiles_insert" on public.profiles;
 create policy "profiles_insert" on public.profiles for insert to authenticated with check (id = auth.uid());
+drop policy if exists "profiles_update" on public.profiles;
 create policy "profiles_update" on public.profiles for update to authenticated using (id = auth.uid());
 
 -- Availability: same as profiles
+drop policy if exists "avail_select" on public.availability_slots;
 create policy "avail_select" on public.availability_slots for select to authenticated using (true);
+drop policy if exists "avail_insert" on public.availability_slots;
 create policy "avail_insert" on public.availability_slots for insert to authenticated with check (profile_id = auth.uid());
+drop policy if exists "avail_delete" on public.availability_slots;
 create policy "avail_delete" on public.availability_slots for delete to authenticated using (profile_id = auth.uid());
 
 -- Sessions: visible to all four participants for doubles (just the two
@@ -491,9 +528,12 @@ create policy "match_results_update" on public.match_results for update to authe
   );
 
 -- Messages: visible only to sender + recipient
+drop policy if exists "messages_select" on public.messages;
 create policy "messages_select" on public.messages for select to authenticated
   using (auth.uid() in (sender_id, recipient_id));
+drop policy if exists "messages_insert" on public.messages;
 create policy "messages_insert" on public.messages for insert to authenticated
   with check (sender_id = auth.uid());
+drop policy if exists "messages_update" on public.messages;
 create policy "messages_update" on public.messages for update to authenticated
   using (recipient_id = auth.uid());  -- only recipient can mark read

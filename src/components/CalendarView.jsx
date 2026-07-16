@@ -30,8 +30,10 @@ export default function CalendarView({
   if (isLoading) return <Loading label="Loading your sessions…" />;
 
   const list = sessions || [];
-  const resultFor = (sessionId) =>
-    (results || []).find((r) => r.session_id === sessionId);
+  // One result per session (session_id is unique on match_results) — a Map
+  // gives O(1) lookups per row instead of an O(results) scan per session.
+  const resultsBySession = new Map((results || []).map((r) => [r.session_id, r]));
+  const resultFor = (sessionId) => resultsBySession.get(sessionId);
   const hasAny = list.some((s) =>
     ["pending", "incoming", "confirmed"].includes(s.uiStatus),
   );
