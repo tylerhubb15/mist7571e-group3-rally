@@ -120,49 +120,49 @@ export default function Profile({ me, updateAsync, updating, updateError, matchR
       <Header eyebrow="Your profile" title="Game settings" sub="Drives every match you see." />
 
       {!editing ? (
-        <div className="card" style={{ padding: 14, marginBottom: 14 }}>
-          <button className="btn btn-o" style={{ width: "100%", justifyContent: "center" }} onClick={startEdit}>
+        <div className="card card-section">
+          <button className="btn btn-o btn-full" onClick={startEdit}>
             <Pencil size={14} />Edit profile
           </button>
         </div>
       ) : null}
 
-      <div className="card" style={{ padding: 20, marginBottom: 16, background: "var(--ink)", color: "var(--paper)", boxShadow: "4px 5px 0 var(--clay)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div className="ring disp" style={{ width: 52, height: 52, background: "var(--optic)", color: "var(--ink)", fontWeight: 800, fontSize: 20 }}>ME</div>
+      <div className="card card-lg card-dark">
+        <div className="flex-center-gap">
+          <div className="ring disp avatar-optic" style={{ width: 52, height: 52, fontSize: 20 }}>ME</div>
           <div>
-            <div className="disp" style={{ fontSize: 22, fontWeight: 800 }}>{me.name}</div>
+            <div className="disp header-title">{me.name}</div>
             <div style={{ fontSize: 13, opacity: 0.85, fontWeight: 600 }}>{me.racket || "No racket set"} · {me.hand}-handed</div>
             <div style={{ fontSize: 12, opacity: 0.65, fontWeight: 600, marginTop: 2 }}>{me.home_court || "No home court set"}</div>
           </div>
           <div style={{ marginLeft: "auto", textAlign: "center" }}>
-            <div className="disp" style={{ fontSize: 28, fontWeight: 800, color: "var(--optic)" }}>{me.ntrp}</div>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".1em" }}>NTRP</div>
+            <div className="profile-ntrp">{me.ntrp}</div>
+            <div className="text-tiny">NTRP</div>
           </div>
         </div>
       </div>
 
       <Field label="Match history">
-        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: stats.played ? 16 : 12 }}>
+        <div className="flex-center-gap" style={{ marginBottom: stats.played ? 16 : 12 }}>
           {stats.played === 0 ? (
-            <div style={{ fontSize: 13, color: "var(--muted)", fontWeight: 600, flex: 1 }}>
+            <div className="profile-stat-label">
               No matches yet — log one from a confirmed session in Calendar, or add a past match by hand.
             </div>
           ) : (
-            <div style={{ display: "flex", gap: 22, flexWrap: "wrap", flex: 1 }}>
+            <div className="profile-stat-row">
               <Stat label="Played" value={stats.played} />
               <Stat label="Won" value={stats.won} />
               <Stat label="Lost" value={stats.lost} />
               {stats.noDecision ? <Stat label="No decision" value={stats.noDecision} /> : null}
             </div>
           )}
-          <button className="btn btn-o" style={{ padding: "7px 12px", fontSize: 13, flexShrink: 0 }} onClick={onAddMatch}>
+          <button className="btn btn-o btn-sm flex-shrink-0" onClick={onAddMatch}>
             <Plus size={14} />Add match
           </button>
         </div>
 
         {stats.played > 0 ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div className="profile-match-list">
             {(matchResults || []).map((r) => {
               const outcome = r.viewerOutcome === "won" ? "Won" : r.viewerOutcome === "lost" ? "Lost" : "No decision";
               const outcomeColor = outcome === "Won" ? "var(--optic-d)" : outcome === "Lost" ? "var(--clay)" : "var(--muted)";
@@ -173,15 +173,15 @@ export default function Profile({ me, updateAsync, updating, updateError, matchR
                 <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0",
                   borderTop: "1.5px solid var(--paper2)" }}>
                   <Avatar name={r.opponents[0]?.name || "?"} size={32} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  <div className="profile-match-item">
+                    <div className="profile-match-header">
                       vs {r.opponents.length ? names(r.opponents) : "Unknown"}
                       {r.format === "Doubles" ? <span className="tag" style={{ background: "var(--paper2)", fontSize: 9 }}>Doubles</span> : null}
-                      <span style={{ color: outcomeColor, fontWeight: 800, fontSize: 11, textTransform: "uppercase" }}>
+                      <span className="profile-outcome" style={{ color: outcomeColor }}>
                         <Trophy size={10} style={{ display: "inline", marginRight: 2, verticalAlign: -1 }} />{outcome}
                       </span>
                     </div>
-                    <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>
+                    <div className="profile-match-subtext">
                       {fmtDate(r.played_at)}
                       {scoreText ? ` · ${scoreText}` : ""}
                       {myPartner ? ` · with ${myPartner.name.split(" ")[0]}` : ""}
@@ -189,7 +189,7 @@ export default function Profile({ me, updateAsync, updating, updateError, matchR
                     </div>
                   </div>
                   {r.canEdit ? (
-                    <button className="btn btn-ghost" style={{ padding: 6, flexShrink: 0 }} title="Edit match"
+                    <button className="btn btn-ghost btn-icon flex-shrink-0" title="Edit match"
                       onClick={() => onEditMatch(r)}>
                       <Pencil size={14} />
                     </button>
@@ -203,15 +203,15 @@ export default function Profile({ me, updateAsync, updating, updateError, matchR
 
       <Field label="Your name">
         <div style={{ display: "flex", gap: 9 }}>
-          <div style={{ flex: 1 }}>
-            <input className="inp" placeholder="First name" disabled={!editing}
+          <div className="flex-1">
+            <input className="inp inp-disabled" placeholder="First name" disabled={!editing}
               style={{ opacity: editing ? 1 : 0.6 }}
               value={editing ? firstNameDraft : me.first_name}
               onChange={(e) => setFirstNameDraft(filterFirstName(e.target.value))} />
             <CharWarning show={firstNameWarn} />
           </div>
-          <div style={{ flex: 1 }}>
-            <input className="inp" placeholder="Last name" disabled={!editing}
+          <div className="flex-1">
+            <input className="inp inp-disabled" placeholder="Last name" disabled={!editing}
               style={{ opacity: editing ? 1 : 0.6 }}
               value={editing ? lastNameDraft : (me.last_name || "")}
               onChange={(e) => setLastNameDraft(filterLastName(e.target.value))} />
@@ -224,14 +224,15 @@ export default function Profile({ me, updateAsync, updating, updateError, matchR
         <input type="range" min="2.5" max="5.0" step="0.5" disabled={!editing}
           value={editing ? ntrpDraft : me.ntrp}
           onChange={(e) => setNtrpDraft(Number(e.target.value))}
-          style={{ width: "100%", accentColor: "var(--clay)", opacity: editing ? 1 : 0.6 }} />
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 700, color: "var(--muted)" }}>
+          className="accent-clay"
+          style={{ width: "100%", opacity: editing ? 1 : 0.6 }} />
+        <div className="profile-slot-label">
           <span>2.5</span><span>5.0</span>
         </div>
       </Field>
 
       <Field label="Home court">
-        <select className="inp" disabled={!editing} style={{ opacity: editing ? 1 : 0.6 }}
+        <select className="inp inp-disabled" disabled={!editing} style={{ opacity: editing ? 1 : 0.6 }}
           value={editing ? homeCourtDraft : (me.home_court || "")}
           onChange={(e) => setHomeCourtDraft(e.target.value)}>
           <option value="" disabled>Choose a court…</option>
@@ -240,7 +241,7 @@ export default function Profile({ me, updateAsync, updating, updateError, matchR
       </Field>
 
       <Field label="Racket">
-        <input className="inp" placeholder="e.g. Wilson Blade 100 v10" disabled={!editing}
+        <input className="inp inp-disabled" placeholder="e.g. Wilson Blade 100 v10" disabled={!editing}
           style={{ opacity: editing ? 1 : 0.6 }}
           value={editing ? racketDraft : (me.racket || "")}
           onChange={(e) => setRacketDraft(filterRacket(e.target.value))} />
@@ -275,8 +276,8 @@ export default function Profile({ me, updateAsync, updating, updateError, matchR
       </Field>
 
       <Field label="About you">
-        <textarea className="inp" rows={3} placeholder="Playing style, what you're looking for, anything else worth knowing."
-          disabled={!editing} style={{ resize: "vertical", fontFamily: "inherit", opacity: editing ? 1 : 0.6 }}
+        <textarea className="inp profile-bio-disabled" rows={3} placeholder="Playing style, what you're looking for, anything else worth knowing."
+          disabled={!editing} style={{ opacity: editing ? 1 : 0.6 }}
           value={editing ? bioDraft : (me.bio || "")}
           onChange={(e) => setBioDraft(filterBio(e.target.value))} />
         <CharWarning show={bioWarn} />
@@ -310,11 +311,11 @@ export default function Profile({ me, updateAsync, updating, updateError, matchR
       <SuccessNote show={justSaved} label="Profile saved." />
 
       {editing ? (
-        <div className="card" style={{ padding: 14, marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
-          <button className="btn btn-y" style={{ flex: 1, justifyContent: "center" }} disabled={updating} onClick={saveAll}>
+        <div className="card card-section flex-center" style={{ gap: 10 }}>
+          <button className="btn btn-y flex-1" style={{ justifyContent: "center" }} disabled={updating} onClick={saveAll}>
             <Check size={15} />{updating ? "Saving…" : "Save changes"}
           </button>
-          <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center", border: "1.5px solid var(--ink)" }}
+          <button className="btn btn-ghost flex-1" style={{ justifyContent: "center", border: "1.5px solid var(--ink)" }}
             disabled={updating} onClick={cancelEdit}>
             <X size={15} />Cancel
           </button>
@@ -327,6 +328,6 @@ export default function Profile({ me, updateAsync, updating, updateError, matchR
 const Stat = ({ label, value }) => (
   <div>
     <div className="disp" style={{ fontSize: 22, fontWeight: 800 }}>{value}</div>
-    <div style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".05em" }}>{label}</div>
+    <div className="text-tiny" style={{ textTransform: "uppercase", letterSpacing: ".05em" }}>{label}</div>
   </div>
 );

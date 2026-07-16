@@ -4,7 +4,7 @@ import { Sparkles, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
 export const ScoreRing = ({ value, size = 58 }) => {
   const col = value >= 75 ? "var(--optic)" : value >= 50 ? "#e9d34a" : "var(--clay)";
   return (
-    <div className="ring" style={{ width: size, height: size, flexShrink: 0,
+    <div className="ring flex-shrink-0" style={{ width: size, height: size,
       background: `conic-gradient(${col} ${value * 3.6}deg, var(--paper2) 0deg)` }}>
       <div className="ring" style={{ width: size - 10, height: size - 10, background: "#fff" }}>
         <span className="disp" style={{ fontSize: size * 0.29, fontWeight: 800 }}>{value}</span>
@@ -14,26 +14,24 @@ export const ScoreRing = ({ value, size = 58 }) => {
 };
 
 export const Avatar = ({ name, size = 44, style: s = {} }) => (
-  <div className="ring disp" style={{ width: size, height: size, background: "var(--ink)",
-    color: "var(--optic)", fontWeight: 800, fontSize: size * 0.36, flexShrink: 0,
-    border: "1.5px solid var(--ink)", ...s }}>
+  <div className="ring disp avatar-me flex-shrink-0" style={{ width: size, height: size,
+    fontSize: size * 0.36, ...s }}>
     {name === "You" ? "ME" : name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
   </div>
 );
 
 export const Header = ({ eyebrow, title, sub }) => (
-  <div style={{ marginBottom: 20 }}>
-    <div className="tag" style={{ background: "var(--optic)", marginBottom: 8 }}>
+  <div className="header-main">
+    <div className="tag header-tag mb-8">
       <Sparkles size={12} />{eyebrow}
     </div>
-    <h1 className="disp" style={{ fontSize: 30, fontWeight: 800, margin: "0 0 4px" }}>{title}</h1>
-    {sub ? <p style={{ fontSize: 13, color: "var(--muted)", margin: 0, fontWeight: 600 }}>{sub}</p> : null}
+    <h1 className="disp header-title" style={{ margin: "0 0 4px" }}>{title}</h1>
+    {sub ? <p className="header-subtitle" style={{ margin: 0 }}>{sub}</p> : null}
   </div>
 );
 
 export const Loading = ({ label = "Loading…" }) => (
-  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-    padding: 28, color: "var(--muted)", fontWeight: 600, fontSize: 13 }}>
+  <div className="note-loading">
     <Loader2 size={16} className="spin" />
     {label}
   </div>
@@ -42,10 +40,8 @@ export const Loading = ({ label = "Loading…" }) => (
 export const ErrorNote = ({ error, label }) => {
   if (!error) return null;
   return (
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 7, padding: "10px 12px",
-      borderRadius: 10, border: "1.5px solid var(--clay)", background: "rgba(196,90,60,.08)",
-      color: "var(--clay)", fontWeight: 600, fontSize: 12.5, marginBottom: 12 }}>
-      <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+    <div className="note-error">
+      <AlertTriangle size={14} className="note-error-icon" />
       <span>{label || error.message || "Something went wrong."}</span>
     </div>
   );
@@ -54,10 +50,8 @@ export const ErrorNote = ({ error, label }) => {
 export const SuccessNote = ({ show, label }) => {
   if (!show) return null;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 12px",
-      borderRadius: 10, border: "1.5px solid var(--optic-d)", background: "rgba(165,196,36,.15)",
-      color: "var(--ink)", fontWeight: 600, fontSize: 12.5, marginBottom: 12 }}>
-      <CheckCircle2 size={14} style={{ flexShrink: 0 }} />
+    <div className="note-success">
+      <CheckCircle2 size={14} className="flex-shrink-0" />
       <span>{label}</span>
     </div>
   );
@@ -66,15 +60,15 @@ export const SuccessNote = ({ show, label }) => {
 export const CharWarning = ({ show, label = "Emojis and special characters aren't allowed." }) => {
   if (!show) return null;
   return (
-    <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--clay)", marginTop: 5 }}>
+    <div className="note-warning">
       {label}
     </div>
   );
 };
 
 export const Field = ({ label, children }) => (
-  <div className="card" style={{ padding: 16, marginBottom: 14 }}>
-    <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 10, textTransform: "uppercase", letterSpacing: ".05em" }}>
+  <div className="card card-field">
+    <div className="text-label-mb">
       {label}
     </div>
     {children}
