@@ -49,17 +49,17 @@ export default function Auth() {
   };
 
   return (
-    <div className="rally court-bg flex-center" style={{ minHeight: "100vh", padding: "24px 16px" }}>
-      <div style={{ width: "100%", maxWidth: 400 }}>
+    <div className="rally court-bg flex-center py-24 px-16">
+      <div className="auth-container">
         <div className="flex-col-center mb-26">
-          <div className="logo-ring flex-center mb-8" style={{ width: 44, height: 44 }}>
+          <div className="logo-ring flex-center mb-8">
             <Activity size={22} color="var(--ink)" />
           </div>
-          <span className="disp" style={{ fontSize: 28, fontWeight: 800 }}>RALLY</span>
+          <span className="disp auth-brand">RALLY</span>
           <span className="text-muted-sm">find your hit</span>
         </div>
 
-        <div className="card pop" style={{ padding: 24 }}>
+        <div className="card pop p-24">
           {!isSupabaseConfigured ? (
             <ErrorNote
               error={{ message: "not configured" }}
@@ -72,7 +72,7 @@ export default function Auth() {
               <MailCheck size={30} className="modal-icon" color="var(--optic-d)" />
               <div className="disp modal-heading">Check your email</div>
               <p className="modal-text">
-                We sent a confirmation link to <strong style={{ color: "var(--ink)" }}>{email}</strong>.
+                We sent a confirmation link to <strong className="text-ink">{email}</strong>.
                 Click it to activate your account, then sign in below.
               </p>
               <button className="btn btn-ghost btn-full mt-16"
@@ -104,7 +104,7 @@ export default function Auth() {
 
               <form onSubmit={submit}>
                 {mode === "signup" ? (
-                  <div style={{ display: "flex", gap: 9, marginBottom: 11 }}>
+                  <div className="flex gap-9 mb-11">
                     <div className="inp-icon-wrapper flex-1">
                       <User size={15} className="inp-icon" />
                       <input className="inp inp-with-icon" placeholder="First name"
@@ -136,9 +136,9 @@ export default function Auth() {
                 </button>
               </form>
 
-              <div className="text-center text-muted mt-16" style={{ fontSize: 13 }}>
+              <div className="text-center text-muted mt-16 text-13">
                 {mode === "signup" ? "Already have an account?" : "New to Rally?"}{" "}
-                <button className="btn btn-ghost" style={{ padding: "2px 6px", fontWeight: 800, color: "var(--ink)" }}
+                <button className="btn btn-ghost text-ink auth-toggle-btn"
                   onClick={() => { setError(null); setMode(mode === "signup" ? "signin" : "signup"); }}>
                   {mode === "signup" ? "Sign in" : "Create one"}
                 </button>

@@ -23,7 +23,7 @@ export default function AICoach({ me }) {
     const question = (text || input).trim();
     if (!question) return;
     setInput("");
-    const next = [...messages, { role: "user", content: question }];
+    const next = [...messages, { role: "user", content: question, id: crypto.randomUUID() }];
     setMessages(next);
     setLoading(true);
     try {
@@ -39,35 +39,35 @@ export default function AICoach({ me }) {
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || "Request failed");
-      setMessages([...next, { role: "coach", content: data.brief }]);
+      setMessages([...next, { role: "coach", content: data.brief, id: crypto.randomUUID() }]);
     } catch (err) {
-      setMessages([...next, { role: "coach", content: `Sorry, something went wrong: ${err.message}` }]);
+      setMessages([...next, { role: "coach", content: `Sorry, something went wrong: ${err.message}`, id: crypto.randomUUID() }]);
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="flex-col" style={{ height: "calc(100vh - 180px)", minHeight: 400 }}>
+    <div className="flex-col coach-shell">
       <Header eyebrow="AI Coach" title="Ask your coach" sub="Get personalised tips to level up your game." />
 
       {/* Chat messages */}
-      <div className="flex-col flex-1" style={{ overflowY: "auto", gap: 12, paddingBottom: 8 }}>
+      <div className="flex-col flex-1 coach-messages">
         {messages.length === 0 ? (
           <div>
-            <div className="card mb-16" style={{ padding: 16 }}>
-              <Sparkles size={28} style={{ margin: "0 auto 8px", display: "block", color: "var(--optic)" }} />
-              <div className="disp" style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>Your AI tennis coach</div>
-              <div className="text-muted" style={{ fontSize: 13 }}>
+            <div className="card mb-16 p-16">
+              <Sparkles size={28} className="coach-hero-icon" />
+              <div className="disp coach-hero-title">Your AI tennis coach</div>
+              <div className="text-muted text-13">
                 Ask anything — technique, tactics, match prep, or how to beat a specific style.
               </div>
             </div>
-            <div className="text-muted" style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", marginBottom: 8 }}>
+            <div className="text-muted label-eyebrow mb-8">
               Try asking
             </div>
-            <div style={{ display: "grid", gap: 7 }}>
+            <div className="grid gap-7">
               {SUGGESTIONS.map((s) => (
-                <button key={s} className="btn btn-ghost" style={{ justifyContent: "flex-start", fontSize: 13, textAlign: "left", border: "1.5px solid var(--ink)" }}
+                <button key={s} className="btn btn-ghost suggestion-btn"
                   onClick={() => send(s)}>
                   {s}
                 </button>
@@ -76,22 +76,12 @@ export default function AICoach({ me }) {
           </div>
         ) : null}
 
-        {messages.map((m, i) => (
-          <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
-            <div style={{
-              maxWidth: "82%",
-              padding: "10px 13px",
-              borderRadius: m.role === "user" ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
-              background: m.role === "user" ? "var(--ink)" : "var(--paper2)",
-              color: m.role === "user" ? "var(--paper)" : "var(--ink2)",
-              fontSize: 14,
-              fontWeight: 600,
-              lineHeight: 1.6,
-              border: m.role === "coach" ? "1.5px solid var(--ink)" : "none",
-            }}>
+        {messages.map((m) => (
+          <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+            <div className={`coach-bubble ${m.role === "user" ? "coach-bubble-user" : "coach-bubble-coach"}`}>
               {m.role === "coach" ? (
                 <div className="flex-start gap-7 flex-shrink-0">
-                  <Sparkles size={13} style={{ marginTop: 3, color: "var(--optic)" }} />
+                  <Sparkles size={13} className="mt-3 text-optic" />
                   <span>{m.content}</span>
                 </div>
               ) : m.content}
@@ -100,10 +90,10 @@ export default function AICoach({ me }) {
         ))}
 
         {loading ? (
-          <div style={{ display: "flex", justifyContent: "flex-start" }}>
-            <div style={{ padding: "10px 13px", borderRadius: "14px 14px 14px 4px", background: "var(--paper2)", border: "1.5px solid var(--ink)", display: "flex", alignItems: "center", gap: 6 }}>
-              <Sparkles size={13} style={{ color: "var(--optic)" }} />
-              <span className="text-muted" style={{ fontSize: 13 }}>Thinking…</span>
+          <div className="flex justify-start">
+            <div className="coach-loading-bubble items-center gap-6">
+              <Sparkles size={13} className="text-optic" />
+              <span className="text-muted text-13">Thinking…</span>
             </div>
           </div>
         ) : null}
@@ -112,7 +102,7 @@ export default function AICoach({ me }) {
       </div>
 
       {/* Input bar */}
-      <div style={{ display: "flex", gap: 8, paddingTop: 10, borderTop: "2px solid var(--ink)" }}>
+      <div className="coach-input-bar">
         <input
           className="inp flex-1"
           placeholder="Ask your coach…"
@@ -122,7 +112,7 @@ export default function AICoach({ me }) {
           disabled={loading}
           maxLength={300}
         />
-        <button className="btn btn-o" style={{ padding: "0 14px" }} onClick={() => send()} disabled={loading || !input.trim()}>
+        <button className="btn btn-o py-0 px-14" onClick={() => send()} disabled={loading || !input.trim()}>
           <Send size={15} />
         </button>
       </div>
