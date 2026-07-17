@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { MapPin, Target, ChevronRight, Zap, MessageCircle, Sparkles } from "lucide-react";
+import { fetchAiBrief } from "../lib/aiBrief.js";
 
 function PlayerBrief({ player }) {
   const [state, setState] = useState("idle");
@@ -8,18 +9,12 @@ function PlayerBrief({ player }) {
   async function fetch_brief() {
     setState("loading");
     try {
-      const res = await fetch("/.netlify/functions/ai-brief", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mode: "matchup",
-          player: { name: player.name, ntrp: player.ntrp, format: player.intent?.includes("Doubles") ? "Doubles" : "Singles" },
-          session: { day: "upcoming", period: "session", court: player.home_court || "your court" },
-        }),
+      const { brief } = await fetchAiBrief({
+        mode: "matchup",
+        player: { name: player.name, ntrp: player.ntrp, format: player.intent?.includes("Doubles") ? "Doubles" : "Singles" },
+        session: { day: "upcoming", period: "session", court: player.home_court || "your court" },
       });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || "Request failed");
-      setBrief(data.brief);
+      setBrief(brief);
       setState("done");
     } catch (err) {
       setBrief(err.message || "Something went wrong.");
