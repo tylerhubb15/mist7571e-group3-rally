@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { MapPin, Target, ChevronRight, Zap, MessageCircle, Sparkles } from "lucide-react";
 import { fetchAiBrief } from "../lib/aiBrief.js";
 
-function PlayerBrief({ player }) {
+function PlayerBrief({ player, record }) {
   const [state, setState] = useState("idle");
   const [brief, setBrief] = useState("");
 
@@ -11,8 +11,14 @@ function PlayerBrief({ player }) {
     try {
       const { brief } = await fetchAiBrief({
         mode: "matchup",
-        player: { name: player.name, ntrp: player.ntrp, format: player.intent?.includes("Doubles") ? "Doubles" : "Singles" },
-        session: { day: "upcoming", period: "session", court: player.home_court || "your court" },
+        player: {
+          name: player.name,
+          ntrp: player.ntrp,
+          hand: player.hand || null,
+          racket: player.racket || null,
+          record,
+        },
+        court: player.home_court || null,
       });
       setBrief(brief);
       setState("done");
@@ -42,12 +48,17 @@ function PlayerBrief({ player }) {
     </div>
   );
 }
-import { useMatches } from "../hooks/hooks.jsx";
+import { useMatches, useMatchResults } from "../hooks/hooks.jsx";
 import { scoreParts } from "../lib/matching.js";
 import { ScoreRing, Avatar, Header, Loading, ErrorNote } from "./Shared.jsx";
 
 export default function Discover({ me, onPropose, onMessage }) {
   const { data: matches, isLoading, error } = useMatches(me.id);
+  // Already fetched/cached by CalendarView & Profile under the same query
+  // key — this doesn't trigger a second network request, just reads
+  // match history so the AI Brief can reference a real head-to-head
+  // record instead of guessing.
+  const { data: matchResults } = useMatchResults(me.id);
   const [open, setOpen] = useState(null);
   // Score each match once when matches/me actually change, instead of on
   // every render — expanding one card's detail panel (an `open` state
@@ -56,6 +67,14 @@ export default function Discover({ me, onPropose, onMessage }) {
     () => (matches || []).map((p) => ({ ...p, parts: scoreParts(me, p) })),
     [matches, me]
   );
+
+  const headToHead = (opponentId) => {
+    const played = (matchResults || []).filter((r) => r.opponents.some((o) => o.id === opponentId));
+    if (!played.length) return null;
+    const won = played.filter((r) => r.viewerOutcome === "won").length;
+    const lost = played.filter((r) => r.viewerOutcome === "lost").length;
+    return `${won}-${lost}`;
+  };
 
   return (
     <div>
@@ -128,7 +147,7 @@ export default function Discover({ me, onPropose, onMessage }) {
                       <MessageCircle size={14} />Message
                     </button>
                     <button className="btn btn-y" onClick={() => onPropose(p)}><Zap size={14} />Propose hit</button>
-                    <PlayerBrief player={p} />
+                    <PlayerBrief player={p} record={headToHead(p.profile_id)} />
                   </div>
                 </div>
               ) : null}
