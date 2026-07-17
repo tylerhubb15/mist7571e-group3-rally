@@ -5,7 +5,9 @@
 //
 //  Two modes:
 //    mode: "matchup" — pre-match brief for a specific opponent (Discover tab)
-//      Body: { mode: "matchup", player: { name, ntrp, format }, session: { day, period, court } }
+//      Body: { mode: "matchup", player: { name, ntrp, hand, racket, record }, court }
+//      `record` is the viewer's head-to-head "W-L" string against this
+//      player (e.g. "2-1"), or null/omitted if they've never played.
 //
 //    mode: "chat" — general tennis coaching chat (AI Coach tab)
 //      Body: { mode: "chat", message: "...", history: [{role, content}, ...] }
@@ -38,7 +40,7 @@ export const handler = async (event) => {
     return jsonError(400, "Invalid JSON body.");
   }
 
-  const { mode = "matchup", player, session, message, history } = body;
+  const { mode = "matchup", player, court, message, history } = body;
 
   let prompt;
 
@@ -55,15 +57,23 @@ export const handler = async (event) => {
 Player: ${message}
 Coach:`;
   } else {
-    if (!player || !session) {
-      return jsonError(400, "Missing player or session data.");
+    if (!player) {
+      return jsonError(400, "Missing player data.");
     }
+    const details = [
+      `NTRP ${player.ntrp}.`,
+      player.hand ? `Hits ${player.hand}-handed.` : null,
+      player.racket ? `Plays with a ${player.racket}.` : null,
+      player.record ? `Your head-to-head record against them is ${player.record} (wins-losses).` : "You haven't played them before.",
+      court ? `Likely court: ${court}.` : null,
+    ].filter(Boolean).join("\n");
+
     prompt = `You are a tennis coach giving a quick pre-match briefing.
 
-Opponent: ${player.name}, NTRP ${player.ntrp}, prefers ${player.format || "Singles"}.
-Session: ${session.day} ${session.period} at ${session.court}.
+Opponent: ${player.name}
+${details}
 
-Give exactly 3 short bullet points (one sentence each) of specific, tactical match-prep advice for playing this opponent. Be direct and practical. No intro or outro — just 3 bullets starting with "•".`;
+Give exactly 3 short bullet points (one sentence each) of specific, tactical match-prep advice for playing THIS opponent. Ground each point in the specific details above — their skill level, playing hand, equipment, or your history against them — rather than generic tennis tips that could apply to anyone. Be direct and practical. No intro or outro — just 3 bullets starting with "•".`;
   }
 
   try {
