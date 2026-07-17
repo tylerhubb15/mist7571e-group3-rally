@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { X, LocateFixed, Minus, Plus } from "lucide-react";
+import { X, LocateFixed, Search, Loader2, Minus, Plus } from "lucide-react";
 import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 import { COURT_LOCS } from "../data/mockData.js";
 import { useAllProfiles } from "../hooks/hooks.jsx";
@@ -59,6 +59,10 @@ export default function CourtsMap({ me, update }) {
   const [selected, setSelected] = useState(null);
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState(null);
+  const [cityInput, setCityInput] = useState("");
+  const [cityLoading, setCityLoading] = useState(false);
+  const [cityError, setCityError] = useState(null);
+  const geocoderRef = useRef(null);
 
   const selCourt = COURT_LOCS.find((c) => c.id === selected);
   const list = players || [];
@@ -85,6 +89,27 @@ export default function CourtsMap({ me, update }) {
       },
       { enableHighAccuracy: false, timeout: 10000 }
     );
+  };
+
+  const searchCity = async () => {
+    const query = cityInput.trim();
+    if (!query || !MAPS_API_KEY) return;
+    setCityError(null);
+    setCityLoading(true);
+    try {
+      if (!geocoderRef.current) {
+        const { Geocoder } = await importLibrary("geocoding");
+        geocoderRef.current = new Geocoder();
+      }
+      const { results } = await geocoderRef.current.geocode({ address: query });
+      const loc = results[0]?.geometry?.location;
+      if (!loc) throw new Error("No matching place found — try a different search.");
+      update({ fields: { lat: loc.lat(), lng: loc.lng() } });
+    } catch (err) {
+      setCityError(err.message || "Couldn't find that place. Try a different search.");
+    } finally {
+      setCityLoading(false);
+    }
   };
 
   // Load the Google Map once
@@ -189,6 +214,18 @@ export default function CourtsMap({ me, update }) {
           </span>
         </div>
         <ErrorNote error={geoError ? { message: geoError } : null} />
+
+        <div className="items-center gap-10 mt-10">
+          <input className="inp flex-1" placeholder="Or search a city — anywhere in the world"
+            value={cityInput} disabled={!MAPS_API_KEY}
+            onChange={(e) => setCityInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") searchCity(); }} />
+          <button className="btn btn-ghost btn-icon border-ink" disabled={cityLoading || !cityInput.trim() || !MAPS_API_KEY}
+            title="Search" onClick={searchCity}>
+            {cityLoading ? <Loader2 size={14} className="spin" /> : <Search size={14} />}
+          </button>
+        </div>
+        <ErrorNote error={cityError ? { message: cityError } : null} />
       </div>
 
       <Field label={`Search radius — ${me.radius_mi} mi`}>
