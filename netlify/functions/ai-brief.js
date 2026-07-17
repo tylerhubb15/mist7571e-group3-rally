@@ -14,25 +14,28 @@
 //    OPENAI_API_KEY=sk-proj-...
 // ─────────────────────────────────────────────────────────────────
 
+const JSON_HEADERS = { "Content-Type": "application/json" };
+const jsonError = (statusCode, message) => ({
+  statusCode,
+  headers: JSON_HEADERS,
+  body: JSON.stringify({ error: message }),
+});
+
 export const handler = async (event) => {
   if (event.httpMethod !== "POST") {
-    return { statusCode: 405, body: "Method Not Allowed" };
+    return jsonError(405, "Method Not Allowed");
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    return {
-      statusCode: 500,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "OpenAI API key not configured." }),
-    };
+    return jsonError(500, "OpenAI API key not configured.");
   }
 
   let body;
   try {
     body = JSON.parse(event.body || "{}");
   } catch {
-    return { statusCode: 400, body: "Invalid JSON body." };
+    return jsonError(400, "Invalid JSON body.");
   }
 
   const { mode = "matchup", player, session, message, history } = body;
@@ -41,7 +44,7 @@ export const handler = async (event) => {
 
   if (mode === "chat") {
     if (!message) {
-      return { statusCode: 400, body: "Missing message for chat mode." };
+      return jsonError(400, "Missing message for chat mode.");
     }
     const historyText = (history || [])
       .slice(-6)
@@ -53,7 +56,7 @@ Player: ${message}
 Coach:`;
   } else {
     if (!player || !session) {
-      return { statusCode: 400, body: "Missing player or session data." };
+      return jsonError(400, "Missing player or session data.");
     }
     prompt = `You are a tennis coach giving a quick pre-match briefing.
 

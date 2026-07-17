@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Sparkles, Send } from "lucide-react";
 import { Header } from "./Shared.jsx";
+import { fetchAiBrief } from "../lib/aiBrief.js";
 
 const SUGGESTIONS = [
   "How do I improve my second serve?",
@@ -27,19 +28,13 @@ export default function AICoach({ me }) {
     setMessages(next);
     setLoading(true);
     try {
-      const res = await fetch("/.netlify/functions/ai-brief", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mode: "chat",
-          message: question,
-          history: messages,
-          me: me ? { ntrp: me.ntrp } : undefined,
-        }),
+      const { brief } = await fetchAiBrief({
+        mode: "chat",
+        message: question,
+        history: messages,
+        me: me ? { ntrp: me.ntrp } : undefined,
       });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || "Request failed");
-      setMessages([...next, { role: "coach", content: data.brief, id: crypto.randomUUID() }]);
+      setMessages([...next, { role: "coach", content: brief, id: crypto.randomUUID() }]);
     } catch (err) {
       setMessages([...next, { role: "coach", content: `Sorry, something went wrong: ${err.message}`, id: crypto.randomUUID() }]);
     } finally {
