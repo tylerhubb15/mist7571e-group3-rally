@@ -50,7 +50,7 @@ export default function CourtsMap({ me, update }) {
   const { data: players, isLoading: playersLoading, error: playersError } = useAllProfiles();
   const mapDivRef = useRef(null);
   const mapRef = useRef(null);
-  const markersRef = useRef([]);
+  const markersRef = useRef(new Map()); // court id -> marker instance
   const MarkerRef = useRef(null);
   const meMarkerRef = useRef(null);
   const circlesRef = useRef([]);
@@ -64,11 +64,17 @@ export default function CourtsMap({ me, update }) {
   const [cityError, setCityError] = useState(null);
   const geocoderRef = useRef(null);
 
-  const selCourt = COURT_LOCS.find((c) => c.id === selected);
-  const list = players || [];
-  const playersHere = selCourt ? list.filter((p) => p.home_court === selCourt.name) : [];
   const userLat = me.lat ?? DEFAULT_LAT;
   const userLng = me.lng ?? DEFAULT_LNG;
+  // Courts are a fixed Athens, GA list — the radius slider actually hides/
+  // shows them by real distance from the user's pin, instead of every
+  // court always appearing regardless of location or radius.
+  const visibleCourts = COURT_LOCS.filter(
+    (c) => distanceMiles(userLat, userLng, c.lat, c.lng) <= me.radius_mi
+  );
+  const selCourt = visibleCourts.find((c) => c.id === selected);
+  const list = players || [];
+  const playersHere = selCourt ? list.filter((p) => p.home_court === selCourt.name) : [];
   const selCourtDistance = selCourt ? distanceMiles(userLat, userLng, selCourt.lat, selCourt.lng) : null;
 
   const useMyLocation = () => {
@@ -164,24 +170,35 @@ export default function CourtsMap({ me, update }) {
     circlesRef.current.forEach((c) => c.setCenter({ lat: userLat, lng: userLng }));
   }, [mapReady, userLat, userLng]);
 
-  // Create court markers once the map is ready, then just update each
-  // marker's icon/label in place when player counts or selection change —
-  // avoids tearing down and rebuilding every marker (and re-encoding every
-  // icon) on every single pin tap.
+  // Create/remove court markers as the in-radius set changes, then just
+  // update icon/label in place for markers that stick around — avoids
+  // tearing down and rebuilding every marker (and re-encoding every icon)
+  // on every single pin tap or player-count change.
   useEffect(() => {
     if (!mapReady || !mapRef.current || !MarkerRef.current) return;
     const Marker = MarkerRef.current;
+    const inRange = COURT_LOCS.filter(
+      (c) => distanceMiles(userLat, userLng, c.lat, c.lng) <= me.radius_mi
+    );
+    const inRangeIds = new Set(inRange.map((c) => c.id));
 
-    if (markersRef.current.length === 0) {
-      markersRef.current = COURT_LOCS.map((c) => {
+    for (const [id, marker] of markersRef.current) {
+      if (!inRangeIds.has(id)) {
+        marker.setMap(null);
+        markersRef.current.delete(id);
+      }
+    }
+
+    for (const c of inRange) {
+      if (!markersRef.current.has(c.id)) {
         const marker = new Marker({
           map: mapRef.current,
           position: { lat: c.lat, lng: c.lng },
           title: c.name,
         });
         marker.addListener("click", () => setSelected((prev) => (prev === c.id ? null : c.id)));
-        return marker;
-      });
+        markersRef.current.set(c.id, marker);
+      }
     }
 
     const countsByCourt = new Map();
@@ -189,14 +206,14 @@ export default function CourtsMap({ me, update }) {
       countsByCourt.set(p.home_court, (countsByCourt.get(p.home_court) || 0) + 1);
     }
 
-    COURT_LOCS.forEach((c, i) => {
+    for (const c of inRange) {
       const pCount = countsByCourt.get(c.name) || 0;
       const isSelected = selected === c.id;
-      const marker = markersRef.current[i];
+      const marker = markersRef.current.get(c.id);
       marker.setIcon(pinIcon(isSelected ? "#C75D3A" : "#15322A", String(pCount || c.courts)));
       marker.setLabel({ text: String(pCount || c.courts), color: isSelected ? "#fff" : "#C9F03C", fontSize: "11px", fontWeight: "800" });
-    });
-  }, [mapReady, list, selected]);
+    }
+  }, [mapReady, list, selected, userLat, userLng, me.radius_mi]);
 
   return (
     <div>
@@ -302,6 +319,12 @@ export default function CourtsMap({ me, update }) {
               </div>
             </div>
           ) : null}
+        </div>
+      ) : visibleCourts.length === 0 ? (
+        <div className="card p-16 bg-paper2">
+          <div className="text-muted text-center text-13">
+            No courts within {me.radius_mi} mi of your location. Try widening your search radius or setting a different location above.
+          </div>
         </div>
       ) : (
         <div className="card p-16 bg-paper2">
