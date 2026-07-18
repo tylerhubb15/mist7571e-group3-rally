@@ -311,6 +311,63 @@ drop trigger if exists profiles_updated_at on public.profiles;
 create trigger profiles_updated_at before update on public.profiles
   for each row execute procedure public.touch_updated_at();
 
+-- Block profanity in profile names server-side. The client-side
+-- sanitizeName() filter (Auth.jsx, Profile.jsx) only strips non-letter
+-- characters as you type — it's a UX nicety, not a security boundary,
+-- since anyone calling the Supabase API directly bypasses it entirely.
+-- This is the actual enforcement point: it runs on both signup
+-- (handle_new_user's insert) and profile edits, so there's one source
+-- of truth instead of duplicating the check per call site.
+--
+-- This is a denylist on a normalized (lowercased, leetspeak-collapsed,
+-- non-letters stripped) copy of the name, so "f.u.c.k" or "F4gg0t"
+-- normalize to the plain word — not a comprehensive filter. It won't
+-- catch every novel evasion (homoglyphs, misspellings), which is a
+-- reasonable tradeoff for a name field, not a moderation system.
+create or replace function public.contains_denied_word(input text)
+returns boolean language plpgsql immutable as $$
+declare
+  normalized text;
+begin
+  if input is null then
+    return false;
+  end if;
+  normalized := lower(input);
+  normalized := translate(normalized, '01345$@!', 'oieassai');
+  normalized := regexp_replace(normalized, '[^a-z]', '', 'g');
+
+  -- Deliberately excludes words that are also common given/surnames
+  -- ("dick" -> Dick, Dickson) — a substring denylist can't distinguish
+  -- a name from a slur that happens to spell the same letters, so this
+  -- errs toward not blocking real names. "fag"/"cunt" keep rare
+  -- collisions (Fagin, Scunthorpe) as an accepted tradeoff; "faggot" is
+  -- omitted as redundant — it already contains "fag".
+  return exists (
+    select 1 from unnest(array[
+      'fuck','shit','bitch','asshole','bastard','cunt','pussy',
+      'nigger','nigga','fag','retard','whore','slut'
+    ]) as denied
+    where normalized like '%' || denied || '%'
+  );
+end;
+$$;
+
+create or replace function public.validate_profile_name()
+returns trigger language plpgsql as $$
+begin
+  if public.contains_denied_word(new.first_name) or public.contains_denied_word(new.last_name) then
+    raise exception 'That name isn''t allowed — please choose a different first/last name.'
+      using errcode = '23514'; -- check_violation
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists profiles_validate_name on public.profiles;
+create trigger profiles_validate_name
+  before insert or update on public.profiles
+  for each row execute procedure public.validate_profile_name();
+
 drop trigger if exists sessions_updated_at on public.sessions;
 create trigger sessions_updated_at before update on public.sessions
   for each row execute procedure public.touch_updated_at();
