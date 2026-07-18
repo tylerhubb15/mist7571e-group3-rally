@@ -301,7 +301,8 @@ export default function Profile({ me, updateAsync, updating, updateError, matchR
         </div>
       </Field>
 
-      <ErrorNote error={saveError || updateError} label="Couldn't save that change — try again." />
+      <ErrorNote error={saveError || updateError}
+        label={(saveError || updateError) ? `Couldn't save that change — ${(saveError || updateError).message}` : undefined} />
       <SuccessNote show={justSaved} label="Profile saved." />
 
       {editing ? (
