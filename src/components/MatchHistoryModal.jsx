@@ -228,7 +228,7 @@ export default function MatchHistoryModal({ me, session, match, onClose, onConfi
             <input className="inp" placeholder="Set 3 / TB — 10-7" value={set3} onChange={(e) => setSet3(e.target.value)} />
           </div>
 
-          <ErrorNote error={error} label="Couldn't save that match — try again." />
+          <ErrorNote error={error} label={error ? `Couldn't save that match — ${error.message}` : undefined} />
           <div className="flex gap-10">
             <button className="btn btn-ghost btn-full" onClick={onClose}>Cancel</button>
             <button className="btn btn-o btn-full flex-2" disabled={sending || !canSubmit} onClick={submit}>

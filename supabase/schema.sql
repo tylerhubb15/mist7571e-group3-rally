@@ -368,6 +368,29 @@ create trigger profiles_validate_name
   before insert or update on public.profiles
   for each row execute procedure public.validate_profile_name();
 
+-- Same profanity guard, extended to match_results' freeform name fields.
+-- "Someone else" in MatchHistoryModal lets a user hand-type an opponent/
+-- partner name for someone without a Rally account — that name never
+-- touches profiles, so profiles_validate_name above never sees it. Reuses
+-- contains_denied_word() rather than duplicating the word list.
+create or replace function public.validate_match_result_names()
+returns trigger language plpgsql as $$
+begin
+  if public.contains_denied_word(new.opponent_name)
+    or public.contains_denied_word(new.partner_name)
+    or public.contains_denied_word(new.opponent2_name) then
+    raise exception 'That name isn''t allowed — please use a different name.'
+      using errcode = '23514'; -- check_violation
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists match_results_validate_names on public.match_results;
+create trigger match_results_validate_names
+  before insert or update on public.match_results
+  for each row execute procedure public.validate_match_result_names();
+
 drop trigger if exists sessions_updated_at on public.sessions;
 create trigger sessions_updated_at before update on public.sessions
   for each row execute procedure public.touch_updated_at();
