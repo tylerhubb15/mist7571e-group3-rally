@@ -269,6 +269,13 @@ export const matchResults = {
     return data;
   },
 
+  /** Delete a result you reported. RLS also enforces this — reported_by
+   *  must match the caller — so this is a no-op if you don't own it. */
+  remove: async (id) => {
+    const { error } = await supabase.from("match_results").delete().eq("id", id);
+    if (error) throw error;
+  },
+
   /**
    * Every result the current user has been part of — RLS already scopes
    * this. Resolves `myTeam`/`opponents` (1 player each for singles, up

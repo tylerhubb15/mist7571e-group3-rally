@@ -607,6 +607,11 @@ create policy "match_results_update" on public.match_results for update to authe
     )
   );
 
+-- Same boundary as update: only whoever reported a result can delete it.
+drop policy if exists "match_results_delete" on public.match_results;
+create policy "match_results_delete" on public.match_results for delete to authenticated
+  using (reported_by = auth.uid());
+
 -- Messages: visible only to sender + recipient
 drop policy if exists "messages_select" on public.messages;
 create policy "messages_select" on public.messages for select to authenticated

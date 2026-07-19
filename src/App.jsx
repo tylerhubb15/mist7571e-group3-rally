@@ -213,6 +213,8 @@ function AuthedApp({ user, signOut }) {
             matchResults={matchResultsHook.data}
             onAddMatch={() => setMatchModal({})}
             onEditMatch={(m) => setMatchModal({ match: m })}
+            onDeleteMatch={matchResultsHook.removeAsync}
+            deletingMatch={matchResultsHook.removing}
           />
         ) : null}
       </div>

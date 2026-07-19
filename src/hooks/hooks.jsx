@@ -198,7 +198,8 @@ export function useSessions(userId) {
  * Every logged result the current user has been part of (RLS-scoped —
  * no filter needed client-side beyond passing userId to resolve
  * `opponent`), plus `report` (session-linked), `logManual` (hand-entered
- * history), and `update` (edit one you reported) mutations.
+ * history), `update`, and `remove` (edit/delete one you reported)
+ * mutations.
  */
 export function useMatchResults(userId) {
   const qc  = useQueryClient();
@@ -225,6 +226,11 @@ export function useMatchResults(userId) {
     onSuccess:  () => qc.invalidateQueries({ queryKey: key }),
   });
 
+  const remove = useMutation({
+    mutationFn: (id) => matchResults.remove(id),
+    onSuccess:  () => qc.invalidateQueries({ queryKey: key }),
+  });
+
   return {
     ...query,
     report:         report.mutate,
@@ -235,6 +241,8 @@ export function useMatchResults(userId) {
     loggingManual:  logManual.isPending,
     updateAsync:    update.mutateAsync,
     updating:       update.isPending,
+    removeAsync:    remove.mutateAsync,
+    removing:       remove.isPending,
   };
 }
 

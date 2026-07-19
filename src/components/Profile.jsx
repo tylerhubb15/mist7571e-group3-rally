@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Trophy, Pencil, Plus, X, Check } from "lucide-react";
+import { Trophy, Pencil, Plus, X, Check, Trash2 } from "lucide-react";
 import { DAYS, PERIODS, INTENTS, FORMATS, HANDS, COURTS } from "../data/mockData.js";
 import { Header, Field, ErrorNote, SuccessNote, CharWarning, Avatar } from "./Shared.jsx";
 import { sanitizeText, sanitizeName } from "../lib/textFilter.js";
@@ -10,7 +10,7 @@ const fmtDate = (d) =>
 const formatSets = (r) => [r.set1_score, r.set2_score, r.set3_score].filter(Boolean).join(", ");
 const names = (people) => people.map((p) => p.name).join(" & ");
 
-export default function Profile({ me, updateAsync, updating, updateError, matchResults, onAddMatch, onEditMatch }) {
+export default function Profile({ me, updateAsync, updating, updateError, matchResults, onAddMatch, onEditMatch, onDeleteMatch, deletingMatch }) {
   const stats = (matchResults || []).reduce(
     (acc, r) => {
       acc.played++;
@@ -25,6 +25,22 @@ export default function Profile({ me, updateAsync, updating, updateError, matchR
   const [editing, setEditing] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [saveError, setSaveError] = useState(null);
+
+  // Delete is irreversible, so the icon click doesn't delete right away —
+  // it arms a "confirm?" state for that one row first. Clicking the trash
+  // icon again (or anywhere confirming) actually deletes; anything else
+  // (Cancel, or picking a different row) backs out.
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [deleteError, setDeleteError] = useState(null);
+  const deleteMatch = async (id) => {
+    setDeleteError(null);
+    try {
+      await onDeleteMatch(id);
+      setConfirmDeleteId(null);
+    } catch (err) {
+      setDeleteError(err);
+    }
+  };
 
   const [firstNameDraft, setFirstNameDraft] = useState(me.first_name);
   const [lastNameDraft, setLastNameDraft] = useState(me.last_name || "");
@@ -161,6 +177,8 @@ export default function Profile({ me, updateAsync, updating, updateError, matchR
           </button>
         </div>
 
+        <ErrorNote error={deleteError} label={deleteError ? `Couldn't delete that match — ${deleteError.message}` : undefined} />
+
         {stats.played > 0 ? (
           <div className="profile-match-list">
             {(matchResults || []).map((r) => {
@@ -188,10 +206,29 @@ export default function Profile({ me, updateAsync, updating, updateError, matchR
                     </div>
                   </div>
                   {r.canEdit ? (
-                    <button className="btn btn-ghost btn-icon flex-shrink-0" title="Edit match"
-                      onClick={() => onEditMatch(r)}>
-                      <Pencil size={14} />
-                    </button>
+                    confirmDeleteId === r.id ? (
+                      <div className="flex gap-6 flex-shrink-0">
+                        <button className="btn btn-ghost btn-sm" disabled={deletingMatch}
+                          onClick={() => setConfirmDeleteId(null)}>
+                          Cancel
+                        </button>
+                        <button className="btn btn-o btn-sm" disabled={deletingMatch}
+                          onClick={() => deleteMatch(r.id)}>
+                          {deletingMatch ? "Deleting…" : "Confirm delete"}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-4 flex-shrink-0">
+                        <button className="btn btn-ghost btn-icon" title="Edit match"
+                          onClick={() => onEditMatch(r)}>
+                          <Pencil size={14} />
+                        </button>
+                        <button className="btn btn-ghost btn-icon" title="Delete match"
+                          onClick={() => setConfirmDeleteId(r.id)}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    )
                   ) : null}
                 </div>
               );
