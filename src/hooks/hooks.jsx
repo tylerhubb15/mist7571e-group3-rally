@@ -11,6 +11,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { auth, profiles, matching, sessions, matchResults, messages, supabase } from "../lib/services.js";
+import { fetchNearbyCourts } from "../lib/nearbyCourts.js";
 
 // ─────────────────────────────  AUTH  ────────────────────────────
 
@@ -97,6 +98,25 @@ export function useAllProfiles() {
     queryKey: ["profiles", "all"],
     queryFn: profiles.listAll,
     staleTime: 1000 * 60,
+  });
+}
+
+/**
+ * useNearbyCourts(lat, lng, radiusMiles)
+ * Real courts near an arbitrary location (Google Places, falling back to
+ * OpenStreetMap/Overpass) — supplements the fixed Athens seed list so the
+ * Courts tab isn't empty everywhere else in the world. Rounded to ~1.1km
+ * in the cache key so minor GPS jitter doesn't trigger a refetch; disabled
+ * entirely until a location is actually set (no point spending an API
+ * call — or hitting the free Overpass service — for the unset default).
+ */
+export function useNearbyCourts(lat, lng, radiusMiles) {
+  return useQuery({
+    queryKey: ["nearbyCourts", lat?.toFixed(2), lng?.toFixed(2)],
+    queryFn: () => fetchNearbyCourts(lat, lng, radiusMiles),
+    enabled: lat != null && lng != null,
+    staleTime: 1000 * 60 * 10,
+    retry: false,
   });
 }
 
