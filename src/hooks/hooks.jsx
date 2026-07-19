@@ -113,7 +113,7 @@ export function useNearbyCourts(lat, lng) {
   return useQuery({
     queryKey: ["nearbyCourts", lat?.toFixed(2), lng?.toFixed(2)],
     queryFn: () => fetchNearbyCourts(lat, lng),
-    enabled: lat != null && lng != null,
+    enabled: lat !== null && lng !== null,
     staleTime: 1000 * 60 * 10,
     retry: false,
   });

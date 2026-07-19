@@ -118,7 +118,7 @@ export default function CourtsMap({ me, update }) {
   // way "who's here" works for any court, anywhere, the same way the map
   // itself now does.
   const playersHere = selCourt
-    ? list.filter((p) => p.lat != null && p.lng != null && distanceMiles(p.lat, p.lng, selCourt.lat, selCourt.lng) <= NEARBY_PLAYER_RADIUS_MI)
+    ? list.filter((p) => p.lat !== null && p.lng !== null && distanceMiles(p.lat, p.lng, selCourt.lat, selCourt.lng) <= NEARBY_PLAYER_RADIUS_MI)
     : [];
   const selCourtDistance = selCourt ? distanceMiles(userLat, userLng, selCourt.lat, selCourt.lng) : null;
 
@@ -253,7 +253,7 @@ export default function CourtsMap({ me, update }) {
       // comment above for why. allCourts tops out around two dozen and
       // `list` is every profile, so this stays cheap at this app's scale.
       const pCount = list.filter(
-        (p) => p.lat != null && p.lng != null && distanceMiles(p.lat, p.lng, c.lat, c.lng) <= NEARBY_PLAYER_RADIUS_MI
+        (p) => p.lat !== null && p.lng !== null && distanceMiles(p.lat, p.lng, c.lat, c.lng) <= NEARBY_PLAYER_RADIUS_MI
       ).length;
       // c.courts (a known court count) only ever exists on the seed data —
       // Places doesn't report it, so fall back to a plain dot rather than
