@@ -77,7 +77,16 @@ export function useProfile(userId) {
         fields && profiles.update(userId, fields),
         slots  && profiles.setSlots(userId, slots),
       ]),
-    onSuccess: () => qc.invalidateQueries({ queryKey: key }),
+    // Match results (Discover) are a function of the profile — lat/lng,
+    // radius, ntrp, slots, intent all feed find_matches() server-side —
+    // so any profile update needs to invalidate the cached match list too,
+    // or Discover keeps showing matches computed before the change until
+    // its 5-minute staleTime lapses. Covers both "Use my location" and the
+    // Courts city search, since both just call this same update().
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: key });
+      qc.invalidateQueries({ queryKey: ["matches", userId] });
+    },
   });
 
   return {
