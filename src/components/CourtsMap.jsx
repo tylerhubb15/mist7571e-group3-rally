@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { X, LocateFixed, Search, Loader2, Minus, Plus } from "lucide-react";
 import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 import { COURT_LOCS } from "../data/mockData.js";
-import { useAllProfiles } from "../hooks/hooks.jsx";
+import { useAllProfiles, useNearbyCourts } from "../hooks/hooks.jsx";
 import { Avatar, Header, Loading, ErrorNote, Field } from "./Shared.jsx";
 import { distanceMiles } from "../lib/geo.js";
 
@@ -66,13 +66,30 @@ export default function CourtsMap({ me, update }) {
 
   const userLat = me.lat ?? DEFAULT_LAT;
   const userLng = me.lng ?? DEFAULT_LNG;
+
+  // Real courts near wherever the user's pin is (Google Places, falling
+  // back to OpenStreetMap) — only fires once a real location is set, since
+  // the curated Athens seed list already covers the unset-default case.
+  // Fetched at RADIUS_MAX and filtered client-side below, same as the seed
+  // list, so dragging the radius slider doesn't re-fire the API call.
+  const { data: nearbyData, isLoading: nearbyLoading, error: nearbyError } =
+    useNearbyCourts(me.lat, me.lng, RADIUS_MAX);
+
   // Courts are a fixed Athens, GA list — the radius slider actually hides/
   // shows them by real distance from the user's pin, instead of every
   // court always appearing regardless of location or radius.
   const visibleCourts = COURT_LOCS.filter(
     (c) => distanceMiles(userLat, userLng, c.lat, c.lng) <= me.radius_mi
   );
-  const selCourt = visibleCourts.find((c) => c.id === selected);
+  // Places/OSM often know about the same seeded Athens courts too (they're
+  // real public parks) — drop anything within ~0.15mi of a seed court so
+  // it doesn't show up twice.
+  const visibleDynamicCourts = (nearbyData?.courts || [])
+    .filter((dc) => !COURT_LOCS.some((sc) => distanceMiles(dc.lat, dc.lng, sc.lat, sc.lng) < 0.15))
+    .filter((c) => distanceMiles(userLat, userLng, c.lat, c.lng) <= me.radius_mi);
+  const allCourts = [...visibleCourts, ...visibleDynamicCourts];
+
+  const selCourt = allCourts.find((c) => c.id === selected);
   const list = players || [];
   const playersHere = selCourt ? list.filter((p) => p.home_court === selCourt.name) : [];
   const selCourtDistance = selCourt ? distanceMiles(userLat, userLng, selCourt.lat, selCourt.lng) : null;
@@ -170,26 +187,24 @@ export default function CourtsMap({ me, update }) {
     circlesRef.current.forEach((c) => c.setCenter({ lat: userLat, lng: userLng }));
   }, [mapReady, userLat, userLng]);
 
-  // Create/remove court markers as the in-radius set changes, then just
-  // update icon/label in place for markers that stick around — avoids
-  // tearing down and rebuilding every marker (and re-encoding every icon)
-  // on every single pin tap or player-count change.
+  // Create/remove court markers as the visible set changes (radius, location,
+  // or the async nearby-courts fetch resolving), then just update icon/label
+  // in place for markers that stick around — avoids tearing down and
+  // rebuilding every marker (and re-encoding every icon) on every single
+  // pin tap or player-count change.
   useEffect(() => {
     if (!mapReady || !mapRef.current || !MarkerRef.current) return;
     const Marker = MarkerRef.current;
-    const inRange = COURT_LOCS.filter(
-      (c) => distanceMiles(userLat, userLng, c.lat, c.lng) <= me.radius_mi
-    );
-    const inRangeIds = new Set(inRange.map((c) => c.id));
+    const visibleIds = new Set(allCourts.map((c) => c.id));
 
     for (const [id, marker] of markersRef.current) {
-      if (!inRangeIds.has(id)) {
+      if (!visibleIds.has(id)) {
         marker.setMap(null);
         markersRef.current.delete(id);
       }
     }
 
-    for (const c of inRange) {
+    for (const c of allCourts) {
       if (!markersRef.current.has(c.id)) {
         const marker = new Marker({
           map: mapRef.current,
@@ -206,14 +221,19 @@ export default function CourtsMap({ me, update }) {
       countsByCourt.set(p.home_court, (countsByCourt.get(p.home_court) || 0) + 1);
     }
 
-    for (const c of inRange) {
+    for (const c of allCourts) {
       const pCount = countsByCourt.get(c.name) || 0;
+      // c.courts (a known court count) only ever exists on the seed data —
+      // Places/OSM don't report it, so fall back to a plain dot rather than
+      // stringify null/undefined into a literal "null" label.
+      const label = pCount || c.courts || "•";
       const isSelected = selected === c.id;
       const marker = markersRef.current.get(c.id);
-      marker.setIcon(pinIcon(isSelected ? "#C75D3A" : "#15322A", String(pCount || c.courts)));
-      marker.setLabel({ text: String(pCount || c.courts), color: isSelected ? "#fff" : "#C9F03C", fontSize: "11px", fontWeight: "800" });
+      marker.setIcon(pinIcon(isSelected ? "#C75D3A" : "#15322A", String(label)));
+      marker.setLabel({ text: String(label), color: isSelected ? "#fff" : "#C9F03C", fontSize: "11px", fontWeight: "800" });
     }
-  }, [mapReady, list, selected, userLat, userLng, me.radius_mi]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapReady, list, selected, userLat, userLng, me.radius_mi, nearbyData]);
 
   return (
     <div>
@@ -289,22 +309,31 @@ export default function CourtsMap({ me, update }) {
       ) : null}
 
       {playersLoading ? <Loading label="Loading players…" /> : null}
+      {nearbyLoading ? <Loading label="Searching for courts near you…" /> : null}
+      <ErrorNote error={nearbyError} label="Couldn't load nearby courts from Google or OpenStreetMap — showing the seed list only." />
 
       {selCourt ? (
         <div className="card pop p-18">
           <div className="flex-between mb-12">
             <div>
               <div className="disp text-21 fw-800">{selCourt.name}</div>
-              <div className="text-muted text-13 mt-3 flex gap-10">
-                <span>{selCourt.courts} courts</span>
-                <span>{selCourt.surfaces.join(" & ")}</span>
+              <div className="text-muted text-13 mt-3 flex gap-10 flex-wrap">
+                {selCourt.courts ? <span>{selCourt.courts} courts</span> : null}
+                {selCourt.surfaces ? <span>{selCourt.surfaces.join(" & ")}</span> : null}
                 <span>{selCourtDistance.toFixed(1)} mi away</span>
                 {selCourt.lit ? <span className="text-optic-d">Lit</span> : null}
+                {selCourt.rating ? <span>★ {selCourt.rating}</span> : null}
               </div>
+              {selCourt.address ? <div className="text-muted text-12 mt-3">{selCourt.address}</div> : null}
             </div>
             <button className="btn btn-ghost btn-icon" onClick={() => setSelected(null)}><X size={16} /></button>
           </div>
-          <p className="court-desc">{selCourt.desc}</p>
+          {selCourt.desc ? <p className="court-desc">{selCourt.desc}</p> : null}
+          {selCourt.source ? (
+            <div className="text-muted text-11 mt-3 mb-8">
+              Via {selCourt.source === "places" ? "Google" : "OpenStreetMap"} — details may be incomplete.
+            </div>
+          ) : null}
           {playersHere.length > 0 ? (
             <div>
               <div className="text-label mb-8">Players here</div>
@@ -320,7 +349,7 @@ export default function CourtsMap({ me, update }) {
             </div>
           ) : null}
         </div>
-      ) : visibleCourts.length === 0 ? (
+      ) : !nearbyLoading && allCourts.length === 0 ? (
         <div className="card p-16 bg-paper2">
           <div className="text-muted text-center text-13">
             No courts within {me.radius_mi} mi of your location. Try widening your search radius or setting a different location above.
