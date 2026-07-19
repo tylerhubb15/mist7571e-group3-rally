@@ -13,6 +13,22 @@ const RADIUS_MAX = 25;
 // so nearby-but-distinct courts don't double-count the same player.
 const NEARBY_PLAYER_RADIUS_MI = 0.5;
 
+// The city search box only accepts a city/state/country-level place — not
+// a business, address, or point of interest. A term like "tennis court"
+// can still resolve to *something* (Google's Geocoder is lenient and may
+// match a specific court's street address instead of erroring), which
+// would silently set the location to a random result rather than what the
+// user meant. Checking the result's own `types` against Google's
+// place-level categories catches this regardless of what the raw input
+// text looks like — a plain string match can't tell "tennis court" apart
+// from a legitimate two-word city like "New York".
+const PLACE_LEVEL_TYPES = new Set([
+  "locality", "sublocality", "postal_town",
+  "administrative_area_level_1", "administrative_area_level_2", "administrative_area_level_3",
+  "country", "political",
+]);
+const isPlaceLevelResult = (result) => (result?.types || []).some((t) => PLACE_LEVEL_TYPES.has(t));
+
 // Athens, GA center — used as the "you are here" fallback until a user sets
 // their real location.
 const DEFAULT_LAT = 33.95;
@@ -137,8 +153,12 @@ export default function CourtsMap({ me, update }) {
         geocoderRef.current = new Geocoder();
       }
       const { results } = await geocoderRef.current.geocode({ address: query });
-      const loc = results[0]?.geometry?.location;
-      if (!loc) throw new Error("No matching place found — try a different search.");
+      const top = results[0];
+      if (!top) throw new Error("No matching place found — try a different search.");
+      if (!isPlaceLevelResult(top)) {
+        throw new Error('That doesn\'t look like a city — try just the city name, or "City, State".');
+      }
+      const loc = top.geometry.location;
       update({ fields: { lat: loc.lat(), lng: loc.lng() } });
     } catch (err) {
       setCityError(err.message || "Couldn't find that place. Try a different search.");
