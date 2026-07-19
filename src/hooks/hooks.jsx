@@ -102,18 +102,17 @@ export function useAllProfiles() {
 }
 
 /**
- * useNearbyCourts(lat, lng, radiusMiles)
- * Real courts near an arbitrary location (Google Places, falling back to
- * OpenStreetMap/Overpass) — supplements the fixed Athens seed list so the
- * Courts tab isn't empty everywhere else in the world. Rounded to ~1.1km
- * in the cache key so minor GPS jitter doesn't trigger a refetch; disabled
- * entirely until a location is actually set (no point spending an API
- * call — or hitting the free Overpass service — for the unset default).
+ * useNearbyCourts(lat, lng)
+ * Real courts near an arbitrary location via Google Places — supplements
+ * the fixed Athens seed list so the Courts tab isn't empty everywhere else
+ * in the world. Rounded to ~1.1km in the cache key so minor GPS jitter
+ * doesn't trigger a refetch; disabled entirely until a location is
+ * actually set (no point spending an API call for the unset default).
  */
-export function useNearbyCourts(lat, lng, radiusMiles) {
+export function useNearbyCourts(lat, lng) {
   return useQuery({
     queryKey: ["nearbyCourts", lat?.toFixed(2), lng?.toFixed(2)],
-    queryFn: () => fetchNearbyCourts(lat, lng, radiusMiles),
+    queryFn: () => fetchNearbyCourts(lat, lng),
     enabled: lat != null && lng != null,
     staleTime: 1000 * 60 * 10,
     retry: false,
