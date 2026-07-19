@@ -71,13 +71,13 @@ export default function CourtsMap({ me, update }) {
   const userLat = me.lat ?? DEFAULT_LAT;
   const userLng = me.lng ?? DEFAULT_LNG;
 
-  // Real courts near wherever the user's pin is (Google Places, falling
-  // back to OpenStreetMap) — only fires once a real location is set, since
-  // the curated Athens seed list already covers the unset-default case.
-  // Fetched at RADIUS_MAX and filtered client-side below, same as the seed
-  // list, so dragging the radius slider doesn't re-fire the API call.
+  // Real courts near wherever the user's pin is (Google Places) — only
+  // fires once a real location is set, since the curated Athens seed list
+  // already covers the unset-default case. Results are filtered by the
+  // current radius client-side below, same as the seed list, so dragging
+  // the radius slider doesn't re-fire the API call.
   const { data: nearbyData, isLoading: nearbyLoading, error: nearbyError } =
-    useNearbyCourts(me.lat, me.lng, RADIUS_MAX);
+    useNearbyCourts(me.lat, me.lng);
 
   // Courts are a fixed Athens, GA list — the radius slider actually hides/
   // shows them by real distance from the user's pin, instead of every
@@ -85,7 +85,7 @@ export default function CourtsMap({ me, update }) {
   const visibleCourts = COURT_LOCS.filter(
     (c) => distanceMiles(userLat, userLng, c.lat, c.lng) <= me.radius_mi
   );
-  // Places/OSM often know about the same seeded Athens courts too (they're
+  // Places often knows about the same seeded Athens courts too (they're
   // real public parks) — drop anything within ~0.15mi of a seed court so
   // it doesn't show up twice.
   const visibleDynamicCourts = (nearbyData?.courts || [])
@@ -98,7 +98,7 @@ export default function CourtsMap({ me, update }) {
   // "Near this court" is distance from each player's own location, not a
   // home_court name match — home_court is a fixed dropdown of the 6 seed
   // Athens courts (Profile.jsx), so it can never match a court that only
-  // exists because a city search just pulled it in from Places/OSM. This
+  // exists because a city search just pulled it in from Places. This
   // way "who's here" works for any court, anywhere, the same way the map
   // itself now does.
   const playersHere = selCourt
@@ -236,7 +236,7 @@ export default function CourtsMap({ me, update }) {
         (p) => p.lat != null && p.lng != null && distanceMiles(p.lat, p.lng, c.lat, c.lng) <= NEARBY_PLAYER_RADIUS_MI
       ).length;
       // c.courts (a known court count) only ever exists on the seed data —
-      // Places/OSM don't report it, so fall back to a plain dot rather than
+      // Places doesn't report it, so fall back to a plain dot rather than
       // stringify null/undefined into a literal "null" label.
       const label = pCount || c.courts || "•";
       const isSelected = selected === c.id;
@@ -322,7 +322,7 @@ export default function CourtsMap({ me, update }) {
 
       {playersLoading ? <Loading label="Loading players…" /> : null}
       {nearbyLoading ? <Loading label="Searching for courts near you…" /> : null}
-      <ErrorNote error={nearbyError} label="Couldn't load nearby courts from Google or OpenStreetMap — showing the seed list only." />
+      <ErrorNote error={nearbyError} label="Couldn't load nearby courts from Google — showing the seed list only." />
 
       {selCourt ? (
         <div className="card pop p-18">
@@ -341,9 +341,9 @@ export default function CourtsMap({ me, update }) {
             <button className="btn btn-ghost btn-icon" onClick={() => setSelected(null)}><X size={16} /></button>
           </div>
           {selCourt.desc ? <p className="court-desc">{selCourt.desc}</p> : null}
-          {selCourt.source ? (
+          {selCourt.source === "places" ? (
             <div className="text-muted text-11 mt-3 mb-8">
-              Via {selCourt.source === "places" ? "Google" : "OpenStreetMap"} — details may be incomplete.
+              Via Google — details may be incomplete.
             </div>
           ) : null}
           {playersHere.length > 0 ? (
