@@ -8,6 +8,10 @@ import { distanceMiles } from "../lib/geo.js";
 
 const RADIUS_MIN = 3;
 const RADIUS_MAX = 25;
+// How close a player's own location has to be to a court to count as
+// "at" it. Smaller than the ~1mi gap between the closest two seed courts
+// so nearby-but-distinct courts don't double-count the same player.
+const NEARBY_PLAYER_RADIUS_MI = 0.5;
 
 // Athens, GA center — used as the "you are here" fallback until a user sets
 // their real location.
@@ -91,7 +95,15 @@ export default function CourtsMap({ me, update }) {
 
   const selCourt = allCourts.find((c) => c.id === selected);
   const list = players || [];
-  const playersHere = selCourt ? list.filter((p) => p.home_court === selCourt.name) : [];
+  // "Near this court" is distance from each player's own location, not a
+  // home_court name match — home_court is a fixed dropdown of the 6 seed
+  // Athens courts (Profile.jsx), so it can never match a court that only
+  // exists because a city search just pulled it in from Places/OSM. This
+  // way "who's here" works for any court, anywhere, the same way the map
+  // itself now does.
+  const playersHere = selCourt
+    ? list.filter((p) => p.lat != null && p.lng != null && distanceMiles(p.lat, p.lng, selCourt.lat, selCourt.lng) <= NEARBY_PLAYER_RADIUS_MI)
+    : [];
   const selCourtDistance = selCourt ? distanceMiles(userLat, userLng, selCourt.lat, selCourt.lng) : null;
 
   const useMyLocation = () => {
@@ -216,13 +228,13 @@ export default function CourtsMap({ me, update }) {
       }
     }
 
-    const countsByCourt = new Map();
-    for (const p of list) {
-      countsByCourt.set(p.home_court, (countsByCourt.get(p.home_court) || 0) + 1);
-    }
-
     for (const c of allCourts) {
-      const pCount = countsByCourt.get(c.name) || 0;
+      // Distance-based, not a home_court name match — see the playersHere
+      // comment above for why. allCourts tops out around two dozen and
+      // `list` is every profile, so this stays cheap at this app's scale.
+      const pCount = list.filter(
+        (p) => p.lat != null && p.lng != null && distanceMiles(p.lat, p.lng, c.lat, c.lng) <= NEARBY_PLAYER_RADIUS_MI
+      ).length;
       // c.courts (a known court count) only ever exists on the seed data —
       // Places/OSM don't report it, so fall back to a plain dot rather than
       // stringify null/undefined into a literal "null" label.
