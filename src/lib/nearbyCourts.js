@@ -2,6 +2,24 @@ import { importLibrary } from "@googlemaps/js-api-loader";
 
 const MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
+// Text Search for "tennis courts" often turns up private amenities —
+// an apartment complex or hotel that happens to have a court — rather
+// than somewhere a stranger can actually walk up and play. Google Places
+// (New) Table A has explicit types for these; anything matching gets
+// dropped before it ever reaches the map.
+const PRIVATE_PLACE_TYPES = new Set([
+  "apartment_building",
+  "apartment_complex",
+  "condominium_complex",
+  "housing_complex",
+  "real_estate_agency",
+  "lodging",
+  "hotel",
+  "motel",
+  "resort_hotel",
+]);
+const isPrivateVenue = (types) => (types || []).some((t) => PRIVATE_PLACE_TYPES.has(t));
+
 /**
  * Google Places API (New) Text Search. Requires "Places API (New)" enabled
  * on the same Google Cloud project as VITE_GOOGLE_MAPS_API_KEY — same key,
@@ -20,13 +38,13 @@ export async function fetchNearbyCourts(lat, lng) {
   const { Place } = await importLibrary("places");
   const { places } = await Place.searchByText({
     textQuery: "tennis courts",
-    fields: ["id", "displayName", "location", "formattedAddress", "rating"],
+    fields: ["id", "displayName", "location", "formattedAddress", "rating", "types"],
     locationBias: { lat, lng },
     maxResultCount: 20,
   });
 
   const courts = (places || [])
-    .filter((p) => p.location)
+    .filter((p) => p.location && !isPrivateVenue(p.types))
     .map((p) => ({
       id: `places:${p.id}`,
       name: p.displayName || "Tennis court",
