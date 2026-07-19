@@ -41,6 +41,14 @@ export async function fetchNearbyCourts(lat, lng) {
     fields: ["id", "displayName", "location", "formattedAddress", "rating", "types"],
     locationBias: { lat, lng },
     maxResultCount: 20,
+    // Text Search is a fuzzy text match by default, not a category filter —
+    // "tennis courts" alone can surface a department store whose listing
+    // just mentions tennis gear. includedType restricts to Google's own
+    // "tennis_court" classification; useStrictTypeFiltering makes that a
+    // hard filter instead of a soft preference (default behavior still
+    // lets non-matching types through).
+    includedType: "tennis_court",
+    useStrictTypeFiltering: true,
   });
 
   const courts = (places || [])
