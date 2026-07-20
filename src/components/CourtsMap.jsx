@@ -44,6 +44,23 @@ const MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 // `window` instead, which HMR doesn't touch.
 const MAPS_OPTIONS_SET_KEY = "__rallyMapsOptionsSet";
 
+// Called here at module load, not inside a component effect. importLibrary()
+// throws "google.maps.importLibrary is not installed." if it runs before
+// setOptions() has — and useNearbyCourts's fetch (hooks.jsx) calls
+// importLibrary("places") from a *different* effect than the one below
+// that used to own setOptions(), with no ordering guarantee between the
+// two on mount. That race intermittently failed the nearby-courts fetch
+// with no console error (the library's own warning for this is dev-only)
+// and no visible retry until React Query's next automatic refetch (e.g.
+// on window focus) happened to land after setOptions() had finally run.
+// Calling it eagerly here — synchronous, no network request on its own —
+// guarantees it's done before anything in this file can call
+// importLibrary(), eliminating the race entirely.
+if (MAPS_API_KEY && !window[MAPS_OPTIONS_SET_KEY]) {
+  setOptions({ key: MAPS_API_KEY, v: "weekly" });
+  window[MAPS_OPTIONS_SET_KEY] = true;
+}
+
 // Muted, low-clutter style closer to the app's court-paper palette than
 // Google's default look — hides POI/transit noise so court pins stand out.
 const MAP_STYLE = [
@@ -171,10 +188,6 @@ export default function CourtsMap({ me, update }) {
   useEffect(() => {
     if (!MAPS_API_KEY || !mapDivRef.current) return;
     let cancelled = false;
-    if (!window[MAPS_OPTIONS_SET_KEY]) {
-      setOptions({ key: MAPS_API_KEY, v: "weekly" });
-      window[MAPS_OPTIONS_SET_KEY] = true;
-    }
     Promise.all([importLibrary("maps"), importLibrary("marker")])
       .then(([{ Map, Circle }, { Marker }]) => {
         if (cancelled || !mapDivRef.current) return;
