@@ -66,6 +66,16 @@ export const CharWarning = ({ show, label = "Emojis and special characters aren'
   );
 };
 
+// A card-shaped "nothing here yet" placeholder — Discover, Messages, and
+// CourtsMap each used to hand-roll their own version of this same shape
+// (centered muted text in a card, optionally with a bold title).
+export const EmptyState = ({ title, children, className = "" }) => (
+  <div className={`card p-16 bg-paper2 ${className}`}>
+    {title ? <div className="disp text-center empty-state-title mb-6">{title}</div> : null}
+    <div className="text-muted text-center text-13">{children}</div>
+  </div>
+);
+
 export const Field = ({ label, children }) => (
   <div className="card card-field">
     <div className="text-label-mb">

@@ -53,27 +53,45 @@ export const auth = {
 
 // ──────────────────────────  PROFILES  ───────────────────────────
 
+// profiles.lat/lng are select-revoked for the `authenticated` role at the
+// DB level (schema.sql) — no direct table read, own row or anyone
+// else's, can return them anymore. RETURNING on an update is a read for
+// privilege purposes too, so update()'s follow-up select has to name its
+// columns explicitly instead of the old bare .select() (= select *),
+// which would now fail with "permission denied for column lat" on every
+// save, not just ones touching location.
+const PROFILE_WRITABLE_COLUMNS =
+  "id,first_name,last_name,name,ntrp,radius_mi,intent,formats,surfaces,hand,racket,home_court,bio,avatar_url,created_at,updated_at";
+
 export const profiles = {
-  /** Lightweight fetch of every profile — used for the courts map */
+  /**
+   * Lightweight fetch of every profile — used for the courts map roster
+   * and the "On Rally" player pickers. Reads from profiles_public, a
+   * view that returns lat/lng for the caller's own row and null for
+   * everyone else's (schema.sql) — this alone can't leak another user's
+   * exact location no matter what the client requests.
+   */
   listAll: async () => {
     const { data, error } = await supabase
-      .from("profiles")
+      .from("profiles_public")
       .select("id,name,ntrp,lat,lng,home_court");
     if (error) throw error;
     return data;
   },
 
-  /** Fetch any profile by id */
-  get: async (id) => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*, availability_slots(*)")
-      .eq("id", id)
-      .single();
+  /**
+   * Fetch the current user's own profile. Goes through get_my_profile()
+   * rather than a direct table read — it's the only path that can still
+   * return lat/lng post-revoke, and it's hardcoded to auth.uid()
+   * server-side, so there's no id to spoof. `id` is accepted for call-site
+   * compatibility with useProfile(userId) but otherwise unused: this can
+   * only ever return the caller's own row.
+   */
+  get: async (_id) => {
+    const { data, error } = await supabase.rpc("get_my_profile");
     if (error) throw error;
-    // Reshape slots to the same 'Day-Period' string format the UI expects
-    data.slots = (data.availability_slots || []).map((s) => `${s.day}-${s.period}`);
-    return data;
+    if (!data?.length) throw new Error("Profile not found.");
+    return data[0]; // already includes .slots as ['Mon-AM', ...]
   },
 
   /** Update profile fields (partial update ok) */
@@ -82,7 +100,7 @@ export const profiles = {
       .from("profiles")
       .update(fields)
       .eq("id", id)
-      .select()
+      .select(PROFILE_WRITABLE_COLUMNS)
       .single();
     if (error) throw error;
     return data;
@@ -116,6 +134,36 @@ export const matching = {
     });
     if (error) throw error;
     return data; // already sorted by match_score desc
+  },
+
+  /**
+   * Per-court player counts for the Courts tab's pin labels. Computed
+   * entirely server-side (nearby_player_counts()) so the client never
+   * needs — and never gets — raw profile coordinates to do this itself.
+   * `courts` is [{ id, lat, lng }, ...]; returns [{ court_id, player_count }].
+   */
+  nearbyPlayerCounts: async (courts, radiusMi = 0.5) => {
+    if (!courts.length) return [];
+    const { data, error } = await supabase.rpc("nearby_player_counts", {
+      p_courts: courts.map((c) => ({ id: c.id, lat: c.lat, lng: c.lng })),
+      p_radius_mi: radiusMi,
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  /**
+   * Names + NTRP of players within radiusMi of one point — used for the
+   * "Players here" detail panel on whichever court pin is selected.
+   */
+  nearbyPlayers: async (lat, lng, radiusMi = 0.5) => {
+    const { data, error } = await supabase.rpc("nearby_players", {
+      p_lat: lat,
+      p_lng: lng,
+      p_radius_mi: radiusMi,
+    });
+    if (error) throw error;
+    return data;
   },
 };
 

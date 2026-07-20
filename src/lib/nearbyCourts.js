@@ -20,6 +20,20 @@ const PRIVATE_PLACE_TYPES = new Set([
 ]);
 const isPrivateVenue = (types) => (types || []).some((t) => PRIVATE_PLACE_TYPES.has(t));
 
+// The Places JS SDK's searchByText() doesn't accept an AbortSignal — it's
+// a promise with no cancellation hook, not a raw fetch — so a slow
+// response used to just hang useNearbyCourts's loading state forever.
+// Racing it against a timeout can't cancel the in-flight request, but it
+// does stop the UI from waiting on it indefinitely.
+const PLACES_TIMEOUT_MS = 15000;
+function withTimeout(promise, ms, message) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timeoutId));
+}
+
 /**
  * Google Places API (New) Text Search. Requires "Places API (New)" enabled
  * on the same Google Cloud project as VITE_GOOGLE_MAPS_API_KEY — same key,
@@ -36,20 +50,24 @@ export async function fetchNearbyCourts(lat, lng) {
   if (!MAPS_API_KEY) return { courts: [] };
 
   const { Place } = await importLibrary("places");
-  const { places } = await Place.searchByText({
-    textQuery: "tennis courts",
-    fields: ["id", "displayName", "location", "formattedAddress", "rating", "types"],
-    locationBias: { lat, lng },
-    maxResultCount: 20,
-    // Text Search is a fuzzy text match by default, not a category filter —
-    // "tennis courts" alone can surface a department store whose listing
-    // just mentions tennis gear. includedType restricts to Google's own
-    // "tennis_court" classification; useStrictTypeFiltering makes that a
-    // hard filter instead of a soft preference (default behavior still
-    // lets non-matching types through).
-    includedType: "tennis_court",
-    useStrictTypeFiltering: true,
-  });
+  const { places } = await withTimeout(
+    Place.searchByText({
+      textQuery: "tennis courts",
+      fields: ["id", "displayName", "location", "formattedAddress", "rating", "types"],
+      locationBias: { lat, lng },
+      maxResultCount: 20,
+      // Text Search is a fuzzy text match by default, not a category filter —
+      // "tennis courts" alone can surface a department store whose listing
+      // just mentions tennis gear. includedType restricts to Google's own
+      // "tennis_court" classification; useStrictTypeFiltering makes that a
+      // hard filter instead of a soft preference (default behavior still
+      // lets non-matching types through).
+      includedType: "tennis_court",
+      useStrictTypeFiltering: true,
+    }),
+    PLACES_TIMEOUT_MS,
+    "Google Places took too long to respond."
+  );
 
   const courts = (places || [])
     .filter((p) => p.location && !isPrivateVenue(p.types))
