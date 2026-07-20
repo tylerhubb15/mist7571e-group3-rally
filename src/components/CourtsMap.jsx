@@ -288,25 +288,24 @@ export default function CourtsMap({ me, update }) {
         <div className="text-label mb-10">Your location
         </div>
         <div className="items-center gap-10 flex-wrap">
-          <button className="btn btn-o" disabled={geoLoading} onClick={useMyLocation}>
+          <div className="items-center gap-10 flex-1">
+            <input className="inp flex-1" placeholder="Search a city — anywhere in the world"
+              value={cityInput} disabled={!MAPS_API_KEY}
+              onChange={(e) => setCityInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") searchCity(); }} />
+            <button className="btn btn-ghost btn-icon border-ink" disabled={cityLoading || !cityInput.trim() || !MAPS_API_KEY}
+              title="Search" onClick={searchCity}>
+              {cityLoading ? <Loader2 size={14} className="spin" /> : <Search size={14} />}
+            </button>
+          </div>
+          <button className="btn btn-o flex-shrink-0" disabled={geoLoading} onClick={useMyLocation}>
             <LocateFixed size={14} />{geoLoading ? "Locating…" : "Use my location"}
           </button>
-          <span className="text-muted text-12">
-            {me.lat !== null ? `Set (${me.lat.toFixed(2)}, ${me.lng.toFixed(2)})` : "Not set — matching needs this"}
-          </span>
         </div>
+        <span className="text-muted text-12 mt-10 block">
+          {me.lat !== null ? `Set (${me.lat.toFixed(2)}, ${me.lng.toFixed(2)})` : "Not set — matching needs this"}
+        </span>
         <ErrorNote error={geoError ? { message: geoError } : null} />
-
-        <div className="items-center gap-10 mt-10">
-          <input className="inp flex-1" placeholder="Or search a city — anywhere in the world"
-            value={cityInput} disabled={!MAPS_API_KEY}
-            onChange={(e) => setCityInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") searchCity(); }} />
-          <button className="btn btn-ghost btn-icon border-ink" disabled={cityLoading || !cityInput.trim() || !MAPS_API_KEY}
-            title="Search" onClick={searchCity}>
-            {cityLoading ? <Loader2 size={14} className="spin" /> : <Search size={14} />}
-          </button>
-        </div>
         <ErrorNote error={cityError ? { message: cityError } : null} />
       </div>
 
