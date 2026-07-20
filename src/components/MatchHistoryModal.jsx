@@ -3,7 +3,7 @@ import { Trophy, X } from "lucide-react";
 import { Avatar, ErrorNote, CharWarning } from "./Shared.jsx";
 import { useAllProfiles } from "../hooks/hooks.jsx";
 import { FORMATS } from "../data/mockData.js";
-import { sanitizeText } from "../lib/textFilter.js";
+import { sanitizeText, containsProfanity } from "../lib/textFilter.js";
 import { useCharWarning } from "../hooks/useCharWarning.js";
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -105,8 +105,22 @@ export default function MatchHistoryModal({ me, session, match, onClose, onConfi
 
   const excludeIds = (skip) => [opp1Slot.id, opp2Slot.id, partnerSlot.id].filter((id) => id && id !== skip);
 
+  const [nameError, setNameError] = useState(null);
+
   const submit = () => {
     if (!canSubmit) return;
+
+    const freeformNames = [
+      opp1Slot.mode === "freeform" ? opp1Slot.name : null,
+      format === "Doubles" && opp2Slot.mode === "freeform" ? opp2Slot.name : null,
+      format === "Doubles" && partnerSlot.mode === "freeform" ? partnerSlot.name : null,
+    ];
+    if (freeformNames.some(containsProfanity)) {
+      setNameError("Profanity isn't allowed in the app — please use a different name.");
+      return;
+    }
+    setNameError(null);
+
     const set1Score = set1.trim() || null;
     const set2Score = set2.trim() || null;
     const set3Score = set3.trim() || null;
@@ -228,6 +242,7 @@ export default function MatchHistoryModal({ me, session, match, onClose, onConfi
             <input className="inp" placeholder="Set 3 / TB — 10-7" value={set3} onChange={(e) => setSet3(e.target.value)} />
           </div>
 
+          <ErrorNote error={nameError ? { message: nameError } : null} />
           <ErrorNote error={error} label={error ? `Couldn't save that match — ${error.message}` : undefined} />
           <div className="flex gap-10">
             <button className="btn btn-ghost btn-full" onClick={onClose}>Cancel</button>
