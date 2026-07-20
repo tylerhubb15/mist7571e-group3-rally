@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Trophy, X } from "lucide-react";
 import { Avatar, ErrorNote, CharWarning } from "./Shared.jsx";
 import { useAllProfiles } from "../hooks/hooks.jsx";
@@ -13,7 +13,14 @@ const today = () => new Date().toISOString().slice(0, 10);
 // should still default to "rally" rather than assume freeform).
 const slotFrom = (id, name) => ({ mode: id ? "rally" : name ? "freeform" : "rally", id: id || "", name: name || "" });
 
-function PlayerSlot({ label, required, slot, setSlot, others, excludeIds }) {
+// Memoized because unrelated state elsewhere in the modal (score inputs,
+// the date picker, winner selection) re-renders MatchHistoryModal — and
+// used to re-run this component's own `.filter()` over the full player
+// roster for all three slots every time, even though only one slot (if
+// any) actually changed. Only pays off because `others`/`excludeIds` are
+// now stabilized with useMemo below — an inline array/filter result as a
+// prop would be a new reference every render and defeat this entirely.
+const PlayerSlot = React.memo(function PlayerSlot({ label, required, slot, setSlot, others, excludeIds }) {
   const available = others.filter((p) => !excludeIds.includes(p.id));
   const [nameWarn, filterName] = useCharWarning(sanitizeText);
   return (
@@ -41,7 +48,7 @@ function PlayerSlot({ label, required, slot, setSlot, others, excludeIds }) {
       )}
     </div>
   );
-}
+});
 
 /**
  * Handles three flows through one form:
@@ -64,7 +71,14 @@ export default function MatchHistoryModal({ me, session, match, onClose, onConfi
   const isEdit = !!match;
   const linkedToSession = isEdit ? match.session_id !== null : !!session;
   const { data: allPlayers } = useAllProfiles();
-  const others = (allPlayers || []).filter((p) => p.id !== me.id);
+  // Stable reference unless the roster or viewer actually changes — feeds
+  // React.memo'd PlayerSlot instances below, which would re-filter on
+  // every keystroke elsewhere in this form if `others` were a fresh array
+  // every render (a plain .filter() always is).
+  const others = useMemo(
+    () => (allPlayers || []).filter((p) => p.id !== me.id),
+    [allPlayers, me.id]
+  );
 
   const initialFormat = linkedToSession ? (isEdit ? match.format : session.format) : (isEdit ? match.format : "Singles");
   const [format, setFormat] = useState(initialFormat);
@@ -103,7 +117,12 @@ export default function MatchHistoryModal({ me, session, match, onClose, onConfi
   // singles, and either session-linked or a Rally-user opponent.
   const usesWinnerId = format === "Singles" && (linkedToSession || opp1Slot.mode === "rally");
 
-  const excludeIds = (skip) => [opp1Slot.id, opp2Slot.id, partnerSlot.id].filter((id) => id && id !== skip);
+  // One stable array per slot instead of a function called inline at
+  // render time (`excludeIds(x.id)`) — same reasoning as `others` above,
+  // this is what actually lets React.memo on PlayerSlot skip work.
+  const excludeForOpp1 = useMemo(() => [opp2Slot.id, partnerSlot.id].filter(Boolean), [opp2Slot.id, partnerSlot.id]);
+  const excludeForOpp2 = useMemo(() => [opp1Slot.id, partnerSlot.id].filter(Boolean), [opp1Slot.id, partnerSlot.id]);
+  const excludeForPartner = useMemo(() => [opp1Slot.id, opp2Slot.id].filter(Boolean), [opp1Slot.id, opp2Slot.id]);
 
   const [nameError, setNameError] = useState(null);
 
@@ -211,13 +230,13 @@ export default function MatchHistoryModal({ me, session, match, onClose, onConfi
           ) : (
             <>
               <PlayerSlot label="Opponent 1" required slot={opp1Slot} setSlot={setOpp1Slot}
-                others={others} excludeIds={excludeIds(opp1Slot.id)} />
+                others={others} excludeIds={excludeForOpp1} />
               {format === "Doubles" ? (
                 <>
                   <PlayerSlot label="Opponent 2" slot={opp2Slot} setSlot={setOpp2Slot}
-                    others={others} excludeIds={excludeIds(opp2Slot.id)} />
+                    others={others} excludeIds={excludeForOpp2} />
                   <PlayerSlot label="Your partner" slot={partnerSlot} setSlot={setPartnerSlot}
-                    others={others} excludeIds={excludeIds(partnerSlot.id)} />
+                    others={others} excludeIds={excludeForPartner} />
                 </>
               ) : null}
             </>

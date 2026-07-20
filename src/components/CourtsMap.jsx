@@ -1,17 +1,17 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { X, LocateFixed, Search, Loader2, Minus, Plus } from "lucide-react";
 import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 import { COURT_LOCS } from "../data/mockData.js";
-import { useAllProfiles, useNearbyCourts } from "../hooks/hooks.jsx";
-import { Avatar, Header, Loading, ErrorNote, Field } from "./Shared.jsx";
+import { useNearbyCourts, useNearbyPlayerCounts, useNearbyPlayers } from "../hooks/hooks.jsx";
+import { Avatar, Header, Loading, ErrorNote, Field, EmptyState } from "./Shared.jsx";
 import { distanceMiles } from "../lib/geo.js";
 
 const RADIUS_MIN = 3;
 const RADIUS_MAX = 25;
-// How close a player's own location has to be to a court to count as
-// "at" it. Smaller than the ~1mi gap between the closest two seed courts
-// so nearby-but-distinct courts don't double-count the same player.
-const NEARBY_PLAYER_RADIUS_MI = 0.5;
+// "How close counts as at this court" now lives server-side as
+// nearby_player_counts()/nearby_players()'s p_radius_mi default
+// (schema.sql) — the client no longer has raw coordinates to run this
+// distance check itself.
 
 // The city search box only accepts a city/state/country-level place — not
 // a business, address, or point of interest. A term like "tennis court"
@@ -84,7 +84,6 @@ const pinIcon = (fill, label) => ({
 });
 
 export default function CourtsMap({ me, update }) {
-  const { data: players, isLoading: playersLoading, error: playersError } = useAllProfiles();
   const mapDivRef = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef(new Map()); // court id -> marker instance
@@ -114,29 +113,46 @@ export default function CourtsMap({ me, update }) {
 
   // Courts are a fixed Athens, GA list — the radius slider actually hides/
   // shows them by real distance from the user's pin, instead of every
-  // court always appearing regardless of location or radius.
-  const visibleCourts = COURT_LOCS.filter(
-    (c) => distanceMiles(userLat, userLng, c.lat, c.lng) <= me.radius_mi
+  // court always appearing regardless of location or radius. Memoized so
+  // typing in the city-search box (or any other unrelated state change)
+  // doesn't re-run this filter/dedupe/haversine chain on every keystroke.
+  const visibleCourts = useMemo(
+    () => COURT_LOCS.filter((c) => distanceMiles(userLat, userLng, c.lat, c.lng) <= me.radius_mi),
+    [userLat, userLng, me.radius_mi]
   );
   // Places often knows about the same seeded Athens courts too (they're
   // real public parks) — drop anything within ~0.15mi of a seed court so
   // it doesn't show up twice.
-  const visibleDynamicCourts = (nearbyData?.courts || [])
-    .filter((dc) => !COURT_LOCS.some((sc) => distanceMiles(dc.lat, dc.lng, sc.lat, sc.lng) < 0.15))
-    .filter((c) => distanceMiles(userLat, userLng, c.lat, c.lng) <= me.radius_mi);
-  const allCourts = [...visibleCourts, ...visibleDynamicCourts];
+  const visibleDynamicCourts = useMemo(
+    () => (nearbyData?.courts || [])
+      .filter((dc) => !COURT_LOCS.some((sc) => distanceMiles(dc.lat, dc.lng, sc.lat, sc.lng) < 0.15))
+      .filter((c) => distanceMiles(userLat, userLng, c.lat, c.lng) <= me.radius_mi),
+    [nearbyData, userLat, userLng, me.radius_mi]
+  );
+  const allCourts = useMemo(
+    () => [...visibleCourts, ...visibleDynamicCourts],
+    [visibleCourts, visibleDynamicCourts]
+  );
 
   const selCourt = allCourts.find((c) => c.id === selected);
-  const list = players || [];
-  // "Near this court" is distance from each player's own location, not a
-  // home_court name match — home_court is a fixed dropdown of the 6 seed
-  // Athens courts (Profile.jsx), so it can never match a court that only
-  // exists because a city search just pulled it in from Places. This
-  // way "who's here" works for any court, anywhere, the same way the map
-  // itself now does.
-  const playersHere = selCourt
-    ? list.filter((p) => p.lat !== null && p.lng !== null && distanceMiles(p.lat, p.lng, selCourt.lat, selCourt.lng) <= NEARBY_PLAYER_RADIUS_MI)
-    : [];
+
+  // Both "how many players near each pin" and "who's near the selected
+  // court" are computed server-side (nearby_player_counts/nearby_players)
+  // rather than by scanning every profile's lat/lng client-side — the
+  // client can no longer read other users' raw coordinates at all (see
+  // the column-level revoke in schema.sql), so this is the only way to
+  // get this data, not just the more careful way.
+  const {
+    counts: playerCounts,
+    isLoading: countsLoading,
+    error: countsError,
+  } = useNearbyPlayerCounts(allCourts);
+  const {
+    data: playersHere = [],
+    isLoading: playersHereLoading,
+    error: playersHereError,
+  } = useNearbyPlayers(selCourt?.lat ?? null, selCourt?.lng ?? null);
+
   const selCourtDistance = selCourt ? distanceMiles(userLat, userLng, selCourt.lat, selCourt.lng) : null;
 
   const useMyLocation = () => {
@@ -262,12 +278,9 @@ export default function CourtsMap({ me, update }) {
     }
 
     for (const c of allCourts) {
-      // Distance-based, not a home_court name match — see the playersHere
-      // comment above for why. allCourts tops out around two dozen and
-      // `list` is every profile, so this stays cheap at this app's scale.
-      const pCount = list.filter(
-        (p) => p.lat !== null && p.lng !== null && distanceMiles(p.lat, p.lng, c.lat, c.lng) <= NEARBY_PLAYER_RADIUS_MI
-      ).length;
+      // Server-computed (nearby_player_counts) — see the hook above for
+      // why this can't be a client-side distance scan anymore.
+      const pCount = playerCounts.get(c.id) || 0;
       // c.courts (a known court count) only ever exists on the seed data —
       // Places doesn't report it, so fall back to a plain dot rather than
       // stringify null/undefined into a literal "null" label.
@@ -278,7 +291,7 @@ export default function CourtsMap({ me, update }) {
       marker.setLabel({ text: String(label), color: isSelected ? "#fff" : "#C9F03C", fontSize: "11px", fontWeight: "800" });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapReady, list, selected, userLat, userLng, me.radius_mi, nearbyData]);
+  }, [mapReady, playerCounts, selected, userLat, userLng, me.radius_mi, nearbyData]);
 
   return (
     <div>
@@ -327,7 +340,7 @@ export default function CourtsMap({ me, update }) {
         </div>
       </Field>
 
-      <ErrorNote error={playersError} label="Couldn't load players. Try again in a moment." />
+      <ErrorNote error={countsError} label="Couldn't load player counts. Try again in a moment." />
 
       {!MAPS_API_KEY ? (
         <ErrorNote error={{ message: "not configured" }}
@@ -352,7 +365,7 @@ export default function CourtsMap({ me, update }) {
         </div>
       ) : null}
 
-      {playersLoading ? <Loading label="Loading players…" /> : null}
+      {countsLoading ? <Loading label="Loading players…" /> : null}
       {nearbyLoading ? <Loading label="Searching for courts near you…" /> : null}
       <ErrorNote error={nearbyError} label="Couldn't load nearby courts from Google — showing the seed list only." />
 
@@ -378,12 +391,14 @@ export default function CourtsMap({ me, update }) {
               Via Google — details may be incomplete.
             </div>
           ) : null}
+          <ErrorNote error={playersHereError} label="Couldn't load players for this court." />
+          {playersHereLoading ? <Loading label="Loading players here…" /> : null}
           {playersHere.length > 0 ? (
             <div>
               <div className="text-label mb-8">Players here</div>
               <div className="flex-col gap-9">
                 {playersHere.map((p) => (
-                  <div key={p.id} className="flex-center-gap">
+                  <div key={p.profile_id} className="flex-center-gap">
                     <Avatar name={p.name} size={32} />
                     <span className="fw-700 text-14">{p.name}</span>
                     <span className="tag tag-optic ml-auto">{p.ntrp}</span>
@@ -394,15 +409,11 @@ export default function CourtsMap({ me, update }) {
           ) : null}
         </div>
       ) : !nearbyLoading && allCourts.length === 0 ? (
-        <div className="card p-16 bg-paper2">
-          <div className="text-muted text-center text-13">
-            No courts within {me.radius_mi} mi of your location. Try widening your search radius or setting a different location above.
-          </div>
-        </div>
+        <EmptyState>
+          No courts within {me.radius_mi} mi of your location. Try widening your search radius or setting a different location above.
+        </EmptyState>
       ) : (
-        <div className="card p-16 bg-paper2">
-          <div className="text-muted text-center text-13">Tap a court pin to see details and nearby players.</div>
-        </div>
+        <EmptyState>Tap a court pin to see details and nearby players.</EmptyState>
       )}
     </div>
   );

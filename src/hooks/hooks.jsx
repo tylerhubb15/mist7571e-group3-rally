@@ -8,7 +8,7 @@
 //    <QueryClientProvider client={qc}><App/></QueryClientProvider>
 // ═══════════════════════════════════════════════════════════════════
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { auth, profiles, matching, sessions, matchResults, messages, supabase } from "../lib/services.js";
 import { fetchNearbyCourts } from "../lib/nearbyCourts.js";
@@ -27,18 +27,25 @@ export function useAuth() {
   const [user, setUser]       = useState(null);
   const [loading, setLoading] = useState(true);
   const qc = useQueryClient();
+  const userIdRef = useRef(null);
 
   useEffect(() => {
     // Hydrate from existing session on mount
     auth.getSession().then(({ data: { session } }) => {
+      userIdRef.current = session?.user?.id ?? null;
       setUser(session?.user ?? null);
       setLoading(false);
     });
-    // Listen for sign-in / sign-out
+    // Listen for sign-in / sign-out. This also fires on TOKEN_REFRESHED —
+    // silently, roughly once an hour, for the same signed-in user — so
+    // only bust the cache when the actual identity changes, not on every
+    // refresh event, or every screen refetches everything hourly for
+    // no reason.
     const { data: { subscription } } = auth.onAuthChange((session) => {
+      const nextUserId = session?.user?.id ?? null;
       setUser(session?.user ?? null);
-      // Bust all cached queries on auth change
-      qc.invalidateQueries();
+      if (nextUserId !== userIdRef.current) qc.invalidateQueries();
+      userIdRef.current = nextUserId;
     });
     return () => subscription.unsubscribe();
   }, [qc]);
@@ -125,6 +132,45 @@ export function useNearbyCourts(lat, lng) {
     enabled: lat !== null && lng !== null,
     staleTime: 1000 * 60 * 10,
     retry: false,
+  });
+}
+
+/**
+ * useNearbyPlayerCounts(courts)
+ * Per-court "N players here" counts for the Courts tab's pin labels,
+ * computed server-side by nearby_player_counts(). profiles.lat/lng
+ * aren't readable directly by the client (see the column-level revoke
+ * in schema.sql), so this is the only way to get this number at all —
+ * not just the safer way. `courts` is [{ id, lat, lng }, ...]; returns
+ * the query plus a ready-to-use `counts` Map<court_id, count>.
+ */
+export function useNearbyPlayerCounts(courts) {
+  const key = courts.map((c) => `${c.id}:${c.lat.toFixed(3)}:${c.lng.toFixed(3)}`).join(",");
+  const query = useQuery({
+    queryKey: ["nearbyPlayerCounts", key],
+    queryFn: () => matching.nearbyPlayerCounts(courts),
+    enabled: courts.length > 0,
+    staleTime: 1000 * 60,
+  });
+  const counts = useMemo(
+    () => new Map((query.data || []).map((r) => [r.court_id, r.player_count])),
+    [query.data]
+  );
+  return { ...query, counts };
+}
+
+/**
+ * useNearbyPlayers(lat, lng)
+ * Names + NTRP of players within the "at this court" radius of a single
+ * point — feeds the selected court's "Players here" detail panel.
+ * Disabled until a court is actually selected.
+ */
+export function useNearbyPlayers(lat, lng) {
+  return useQuery({
+    queryKey: ["nearbyPlayers", lat?.toFixed(4), lng?.toFixed(4)],
+    queryFn: () => matching.nearbyPlayers(lat, lng),
+    enabled: lat != null && lng != null,
+    staleTime: 1000 * 60,
   });
 }
 

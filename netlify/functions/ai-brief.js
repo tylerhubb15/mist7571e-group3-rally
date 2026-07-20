@@ -12,9 +12,21 @@
 //    mode: "chat" — general tennis coaching chat (AI Coach tab)
 //      Body: { mode: "chat", message: "...", history: [{role, content}, ...] }
 //
-//  Environment variable required:
+//  Requires an `Authorization: Bearer <supabase access token>` header —
+//  without a Supabase JWT check here, this endpoint was a fully open,
+//  unauthenticated proxy to OpenAI: anyone who found the URL (trivial —
+//  it's a relative path in the client bundle) could hit it directly and
+//  burn through the OpenAI budget with no relationship to Rally at all.
+//  Authenticated callers are further capped by check_ai_brief_rate_limit()
+//  in Postgres so one signed-in account can't do the same thing slower.
+//
+//  Environment variables required:
 //    OPENAI_API_KEY=sk-proj-...
+//    SUPABASE_URL / VITE_SUPABASE_URL          (either name — Netlify
+//    SUPABASE_ANON_KEY / VITE_SUPABASE_ANON_KEY  injects both into functions)
 // ─────────────────────────────────────────────────────────────────
+
+import { createClient } from "@supabase/supabase-js";
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 const jsonError = (statusCode, message) => ({
@@ -22,6 +34,10 @@ const jsonError = (statusCode, message) => ({
   headers: JSON_HEADERS,
   body: JSON.stringify({ error: message }),
 });
+
+// A hung upstream (OpenAI or Supabase auth) shouldn't hang this function
+// indefinitely — fail fast and let the client retry instead.
+const OPENAI_TIMEOUT_MS = 15000;
 
 export const handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -31,6 +47,35 @@ export const handler = async (event) => {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return jsonError(500, "OpenAI API key not configured.");
+  }
+
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return jsonError(500, "Supabase isn't configured for this function.");
+  }
+
+  const authHeader = event.headers?.authorization || event.headers?.Authorization || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (!token) {
+    return jsonError(401, "Sign in to use AI Brief.");
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+  if (authError || !user) {
+    return jsonError(401, "Your session has expired — sign in again.");
+  }
+
+  const { data: allowed, error: rateLimitError } = await supabase.rpc(
+    "check_ai_brief_rate_limit",
+    { p_user_id: user.id }
+  );
+  if (rateLimitError) {
+    return jsonError(500, "Couldn't check usage limits — try again in a moment.");
+  }
+  if (!allowed) {
+    return jsonError(429, "You've hit the AI Brief limit for this hour — try again later.");
   }
 
   let body;
@@ -89,6 +134,7 @@ Give exactly 3 short bullet points (one sentence each) of specific, tactical mat
         max_tokens: mode === "chat" ? 300 : 200,
         temperature: 0.7,
       }),
+      signal: AbortSignal.timeout(OPENAI_TIMEOUT_MS),
     });
 
     if (!response.ok) {

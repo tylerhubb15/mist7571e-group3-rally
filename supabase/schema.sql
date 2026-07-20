@@ -518,6 +518,71 @@ begin
 end;
 $$;
 
+-- ──────────────────────  COURTS-MAP PLAYER COUNTS  ────────────────
+-- Powers the Courts tab's "N players here" pin labels and per-court
+-- roster without ever handing raw profile lat/lng to the client — see
+-- the column-level revoke above. Both are security definer so they can
+-- read profiles.lat/lng at all (the calling `authenticated` role no
+-- longer can), and both only ever return derived data: a count, or a
+-- name + ntrp, never a coordinate.
+create or replace function public.nearby_player_counts(
+  p_courts     jsonb,           -- [{"id": "...", "lat": 33.9, "lng": -83.4}, ...]
+  p_radius_mi  double precision default 0.5
+) returns table (
+  court_id      text,
+  player_count  int
+) language plpgsql stable security definer as $$
+begin
+  return query
+  select
+    c.id,
+    count(p.id)::int
+  from jsonb_to_recordset(p_courts) as c(id text, lat double precision, lng double precision)
+  left join public.profiles p
+    on p.lat is not null and p.lng is not null
+    -- Bounding-box pre-filter (same trick as find_matches above) before
+    -- the exact haversine check, so this stays cheap even with a few
+    -- dozen court pins on screen at once.
+    and p.lat between c.lat - (p_radius_mi * 1.25) / 69.0
+                   and c.lat + (p_radius_mi * 1.25) / 69.0
+    and p.lng between c.lng - (p_radius_mi * 1.25) / (69.0 * cos(radians(c.lat)))
+                   and c.lng + (p_radius_mi * 1.25) / (69.0 * cos(radians(c.lat)))
+    and (3958.8 * acos(
+          least(1.0, cos(radians(c.lat)) * cos(radians(p.lat)) * cos(radians(p.lng) - radians(c.lng))
+            + sin(radians(c.lat)) * sin(radians(p.lat)))
+        )) <= p_radius_mi
+  group by c.id;
+end;
+$$;
+
+-- Same distance check as above, for a single court (the one currently
+-- selected/expanded on the map) — returns who, not just how many, for
+-- the "Players here" detail panel.
+create or replace function public.nearby_players(
+  p_lat        double precision,
+  p_lng        double precision,
+  p_radius_mi  double precision default 0.5
+) returns table (
+  profile_id  uuid,
+  name        text,
+  ntrp        numeric
+) language plpgsql stable security definer as $$
+begin
+  return query
+  select p.id, p.name, p.ntrp
+  from public.profiles p
+  where p.lat is not null and p.lng is not null
+    and p.lat between p_lat - (p_radius_mi * 1.25) / 69.0
+                   and p_lat + (p_radius_mi * 1.25) / 69.0
+    and p.lng between p_lng - (p_radius_mi * 1.25) / (69.0 * cos(radians(p_lat)))
+                   and p_lng + (p_radius_mi * 1.25) / (69.0 * cos(radians(p_lat)))
+    and (3958.8 * acos(
+          least(1.0, cos(radians(p_lat)) * cos(radians(p.lat)) * cos(radians(p.lng) - radians(p_lng))
+            + sin(radians(p_lat)) * sin(radians(p.lat)))
+        )) <= p_radius_mi;
+end;
+$$;
+
 -- ──────────────────────  ROW LEVEL SECURITY  ─────────────────────
 alter table public.profiles          enable row level security;
 alter table public.availability_slots enable row level security;
@@ -532,6 +597,75 @@ drop policy if exists "profiles_insert" on public.profiles;
 create policy "profiles_insert" on public.profiles for insert to authenticated with check (id = auth.uid());
 drop policy if exists "profiles_update" on public.profiles;
 create policy "profiles_update" on public.profiles for update to authenticated using (id = auth.uid());
+
+-- profiles_select is deliberately row-open (`using (true)`) — sessions and
+-- match_results embed profiles via FK joins (opponent/partner/proposer
+-- names, avatars, ntrp) for every participant, not just the caller, and
+-- RLS is evaluated per-table even inside those embeds, so narrowing this
+-- to `id = auth.uid()` would silently blank out every other participant's
+-- name across the app. Row-level isn't the right tool for "hide lat/lng
+-- from other users" — column-level privilege is, since it's independent
+-- of which rows are visible.
+--
+-- Without this, `GET /rest/v1/profiles?select=name,lat,lng` — trivially
+-- reachable by anyone with a valid session and the anon key pulled from
+-- the JS bundle — hands back every user's exact home coordinates. For an
+-- app whose purpose is arranging in-person meetups with strangers, that's
+-- a stalking vector, not a theoretical one. This blocks it unconditionally,
+-- for every row including the caller's own — reading your own lat/lng now
+-- goes through get_my_profile() below instead, and reading anyone else's
+-- (for the courts-map "players nearby" feature) goes through
+-- nearby_player_counts()/nearby_players() further down, both of which
+-- return derived data (counts, or a masked view) rather than raw
+-- coordinates. UPDATE is untouched — only adds a SELECT restriction, so
+-- "Use my location" writes still work; profiles.update()'s RETURNING
+-- clause just has to stop asking for lat/lng back (see services.js).
+revoke select (lat, lng) on public.profiles from authenticated;
+
+-- Safe read surface for "browse other players" (Courts tab roster,
+-- the Rally-user picker in ProposeModal/MatchHistoryModal). Views run
+-- with the *owner's* privileges by default (no `security_invoker`), so
+-- this can still see every row despite the select-list narrowing above —
+-- but it masks lat/lng to null for every row except the caller's own, so
+-- it's not a second door into the same data the revoke just closed.
+create or replace view public.profiles_public as
+select
+  id, name, ntrp, home_court,
+  case when id = auth.uid() then lat else null end as lat,
+  case when id = auth.uid() then lng else null end as lng
+from public.profiles;
+
+grant select on public.profiles_public to authenticated;
+
+-- The one sanctioned way to read your own exact lat/lng — always scoped
+-- to auth.uid() internally (no user_id parameter to spoof), so it can't
+-- become a way to read anyone else's. security definer is what lets it
+-- see lat/lng at all post-revoke; also pre-shapes availability_slots into
+-- the 'Day-Period' strings the client already expects, so profiles.get()
+-- doesn't need a separate embedded-resource query anymore.
+create or replace function public.get_my_profile()
+returns table (
+  id uuid, first_name text, last_name text, name text, ntrp numeric,
+  lat double precision, lng double precision, radius_mi int,
+  intent text[], formats text[], surfaces text[], hand text, racket text,
+  home_court text, bio text, avatar_url text,
+  created_at timestamptz, updated_at timestamptz, slots text[]
+) language plpgsql stable security definer as $$
+begin
+  return query
+  select
+    p.id, p.first_name, p.last_name, p.name, p.ntrp, p.lat, p.lng, p.radius_mi,
+    p.intent, p.formats, p.surfaces, p.hand, p.racket, p.home_court, p.bio, p.avatar_url,
+    p.created_at, p.updated_at,
+    coalesce(
+      (select array_agg(a.day || '-' || a.period order by a.day, a.period)
+       from public.availability_slots a where a.profile_id = p.id),
+      array[]::text[]
+    ) as slots
+  from public.profiles p
+  where p.id = auth.uid();
+end;
+$$;
 
 -- Availability: same as profiles
 drop policy if exists "avail_select" on public.availability_slots;
@@ -622,3 +756,59 @@ create policy "messages_insert" on public.messages for insert to authenticated
 drop policy if exists "messages_update" on public.messages;
 create policy "messages_update" on public.messages for update to authenticated
   using (recipient_id = auth.uid());  -- only recipient can mark read
+
+-- ──────────────────────  AI BRIEF RATE LIMITING  ──────────────────
+-- netlify/functions/ai-brief.js proxies to OpenAI — it now requires a
+-- valid Supabase session (see that file), which stops anonymous cost
+-- abuse, but a logged-in user hammering the endpoint could still run up
+-- the OpenAI bill. This tracks a rolling per-user request count so the
+-- function can reject once someone's over the window limit.
+--
+-- No RLS policy is defined here at all — not "restrictive," genuinely
+-- none — which for a table with RLS enabled means zero direct access via
+-- PostgREST for every role, including the row's own owner. The only way
+-- in or out is check_ai_brief_rate_limit() below, so a client can't read
+-- other users' usage or reset/inflate their own count by hand.
+create table if not exists public.ai_brief_usage (
+  user_id       uuid primary key references auth.users(id) on delete cascade,
+  window_start  timestamptz not null default now(),
+  request_count int         not null default 0
+);
+alter table public.ai_brief_usage enable row level security;
+
+-- Atomic check-and-increment: reads and writes happen under one row lock
+-- (`for update`) so two concurrent requests from the same user can't both
+-- read request_count before either writes it back, which would let them
+-- both slip through one over the limit. security definer since the table
+-- has no policies for authenticated to use directly.
+create or replace function public.check_ai_brief_rate_limit(
+  p_user_id        uuid,
+  p_max_requests    int default 20,
+  p_window_minutes  int default 60
+) returns boolean language plpgsql security definer as $$
+declare
+  v_row public.ai_brief_usage%rowtype;
+begin
+  select * into v_row from public.ai_brief_usage where user_id = p_user_id for update;
+
+  if not found then
+    insert into public.ai_brief_usage (user_id, window_start, request_count)
+    values (p_user_id, now(), 1);
+    return true;
+  end if;
+
+  if now() - v_row.window_start > (p_window_minutes || ' minutes')::interval then
+    update public.ai_brief_usage set window_start = now(), request_count = 1
+      where user_id = p_user_id;
+    return true;
+  end if;
+
+  if v_row.request_count >= p_max_requests then
+    return false;
+  end if;
+
+  update public.ai_brief_usage set request_count = request_count + 1
+    where user_id = p_user_id;
+  return true;
+end;
+$$;
