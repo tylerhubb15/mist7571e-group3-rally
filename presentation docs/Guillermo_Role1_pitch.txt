@@ -1,0 +1,101 @@
+# Rally — Elevator Pitch & Q&A Prep
+
+## The Elevator Pitch (Revised)
+
+Finding a tennis partner shouldn't be harder than finding a match on the court. Right now, players rely on group chats and Facebook groups — or dumb luck at the club. There's no real way to find someone at your skill level, free when you are, and close enough to make it happen.
+
+Rally solves that. It's a partner-matching app that pairs players using a weighted algorithm across skill, availability, and location — so unlike a group chat, Rally actually knows who's a fit before you ever send a message.
+
+We've already got a working prototype live — matching, messaging, and scheduling all in one place.
+
+---
+
+## What Changed and Why
+
+**Original opening kept.** "Finding a tennis partner shouldn't be harder than finding a match on the court" is a strong hook — the pun works and it sets up the problem cleanly.
+
+**Middle sentence tightened for spoken delivery.** The original "group chats, Facebook groups, or just hoping to run into someone" reads fine on paper but stumbles when spoken. Consolidated to two channels plus "dumb luck at the club" — more memorable, easier to say.
+
+**Mechanism tied back to the pain point.** Instead of listing "skill, availability, and location" as flat features, they're framed as what a group chat can't do. Makes the differentiator explicit.
+
+**New closing line added.** The original ended on a tagline ("less time searching, more time playing") — nice, but leaves nothing to point to. Since there's a live Netlify deployment with working auth, Discover, Courts, Messages, Calendar, and Profile tabs, closing with proof of a working prototype separates this from concept pitches.
+
+**Pacing.** Revised version runs roughly 30–35 seconds spoken aloud — appropriate for a true elevator pitch.
+
+---
+
+## Likely Q&A Questions — With Answer Tips
+
+### Technical / Product
+
+**Q: How exactly is the algorithm weighted — are skill, availability, and location equally weighted, or can users prioritize one?**
+- Answer with the actual weights the team implemented (e.g., "skill is weighted highest at X%, then availability, then location"). If weights are configurable, say so.
+- If a user *can* adjust priorities in the Discover tab, mention it — that's a strong feature answer.
+- Don't dodge with "it's complicated." Judges want to see you understand your own product.
+
+**Q: What happens when there's no good match nearby — does the radius expand automatically?**
+- Describe the fallback behavior honestly. If the radius expands, say by how much. If it doesn't yet, frame it as a known enhancement: *"Right now it surfaces the closest available matches; auto-expanding radius is on our roadmap."*
+
+**Q: How do you verify self-reported skill level so people aren't sandbagging?**
+- Acknowledge this is a real cold-start problem. Good answer: *"V1 uses self-reported NTRP/UTR ranges. Longer-term, we'd calibrate with post-match ratings — both players confirm the match happened and rate the level, which lets us surface discrepancies."*
+
+**Q: What's the tech stack, and why those choices?**
+- Own this directly: React + Vite for the front end, Supabase for auth and Postgres with RLS policies, Netlify for hosting, Netlify Functions as a proxy for the OpenAI calls.
+- The "why": fast prototyping, generous free tiers, and the RLS model lets you enforce per-user data access at the database level rather than in application code.
+
+**Q: Tell us about the AI feature — what does the pre-session brief actually generate for a user?**
+- Explain the `useBrief` hook flow: before a match, it pulls the opponent's public profile info and generates a short brief — playing style, recent activity, or conversation starters.
+- Emphasize *why* it's there: reduces the awkwardness of meeting a stranger and gives players context before they even shake hands.
+
+### Safety / Trust
+
+**Q: How do you handle safety when matching strangers to meet in person?**
+- Cover three things: authenticated accounts (Google OAuth via Supabase), meeting at public courts by design (the Courts tab surfaces public locations), and the ability to block/report through the Messages layer.
+- If reporting/blocking isn't fully built yet, name it as an intentional next step rather than glossing over it.
+
+**Q: What data are you collecting for location matching, and how is that secured?**
+- Be specific: general area (city / ZIP) rather than precise GPS coordinates for matching. Supabase Row Level Security means users can only read their own profile data plus the coarse-grained match fields of others.
+- If you've considered account deletion / data export, mention it briefly.
+
+### Market / Business
+
+**Q: How is this different from Meetup, PlayYourCourt, or just a Discord/Facebook group?**
+- Meetup is event-driven, not partner-driven. Facebook groups have no structured skill/availability matching. PlayYourCourt is closer but leans coaching/lessons.
+- Rally is specifically 1:1 partner discovery with a matching algorithm — the closest analogue is a dating app for tennis, not a community forum.
+
+**Q: What's the business model?**
+- Have an answer even if it's not fully decided. A safe framing: freemium — free to match and message, with paid tiers for things like unlimited matches, priority in the Discover feed, or advanced analytics. Court partnerships and clinic promotions are a natural B2B layer later.
+
+**Q: Who's the target user first — casual players, competitive league players, or both?**
+- Pick one and defend it. Casual/intermediate players (3.0–4.0 NTRP) are the biggest underserved segment — competitive players already have leagues, and pros already have coaches.
+- Reference the personas: Marcus Ortiz and William Carver were built for a reason — walk through who they represent.
+
+### Team / Execution
+
+**Q: What's left before this could actually launch?**
+- Be candid: final Google OAuth polish, edge-case debugging, safety features (block/report), and real user testing. Frame remaining work as scoped and known, not open-ended.
+
+**Q: What was the hardest technical problem the team hit?**
+- Pick one and tell it as a short story: challenge → what you tried → what worked. The Supabase RLS + `handle_new_user` trigger + OAuth handshake is a genuinely hard integration and makes a good answer.
+
+**Q: Who owns what on the team, and what was your role specifically?**
+- Own the tech lead role directly — you kept the architecture coherent, made the Supabase and Netlify call, and unblocked teammates. Then briefly credit each teammate by their domain (design, front-end tabs, personas/user stories, docs).
+- Don't undersell. "De facto tech lead" is a real answer.
+
+### Traction / Validation
+
+**Q: Have you tested this with real tennis players yet? What was the feedback?**
+- If yes: share one specific piece of feedback and what changed because of it. Specifics beat generalities.
+- If no: frame it as the immediate next step post-launch and describe *how* you'd test (recruit N players from local clubs, run matched sessions, measure whether they'd use it again).
+
+**Q: How would you measure whether the matching algorithm is actually working well?**
+- Two-sided metric: match acceptance rate (did both players agree to play?) and post-match satisfaction (did they rate the match a good fit?). Repeat-play rate is the strongest signal — if two people play again, the match worked.
+
+---
+
+## Delivery Tips for the Pitch Itself
+
+- Practice the pitch out loud at least 5 times. Reading it silently is not practice.
+- Pause after "Rally solves that." Let it land.
+- Slow down on the three inputs — "skill, availability, and location" — those are the words the audience should remember.
+- If the room is quiet after your pitch, that's fine. Don't fill the silence. Wait for the first question.
