@@ -1,0 +1,105 @@
+RALLY — ELEVATOR PITCH
+Tyler | Role 2 (AI Integration) + System Administrator
+Target: 45–60 seconds
+============================================================
+
+ELEVATOR PITCH  (read this out loud — ~55 seconds)
+----------------------------------------------------
+Before anyone else on the team could write a single line
+of feature code, the infrastructure had to exist. That
+was my job.
+
+I set up every external service the app depends on —
+Google Cloud for the map and Google sign-in, Supabase
+for the database and user authentication, and Netlify for
+hosting and automated deployments. I also wrote the build
+configuration that ties all of it together, and stored all
+four API keys in Netlify's secure environment vault so
+they never appear anywhere in the codebase.
+
+Once the foundation was in place, I built the AI layer on
+top of it. Rally has a coaching chat and a pre-match brief
+that gives you three personalized tips on your opponent
+before you play. What's worth pointing out is that the AI
+call never goes through the browser — I wrote a serverless
+function that acts as the intermediary, so the OpenAI key
+is never exposed to the client side.
+
+[PAUSE — check time — then hand off to next person]
+
+
+============================================================
+POTENTIAL QUESTIONS YOU MAY RECEIVE
+============================================================
+
+Q: Why use a serverless function instead of calling OpenAI
+   directly from the browser?
+A: Calling OpenAI from the browser means the API key ends
+   up inside the JavaScript bundle that gets sent to every
+   user's device — anyone can open the browser's DevTools
+   and read it. The serverless function runs on Netlify's
+   server instead. The browser sends a request to our own
+   endpoint, the function makes the OpenAI call using the
+   key that only exists on the server, and the browser just
+   receives the response. The key is never in transit to
+   the client.
+
+------------------------------------------------------------
+
+Q: What is the VITE_ prefix on some environment variables?
+A: Vite is our build tool. It has a deliberate security
+   rule: only variables prefixed with VITE_ get bundled
+   into the JavaScript the browser downloads. The OpenAI
+   key has no prefix, so Vite excludes it at build time —
+   it's not in the output files at all. The three public
+   keys (Supabase URL, Supabase anon key, Google Maps key)
+   do use VITE_ because the browser legitimately needs them,
+   but each one has its own access restrictions on the
+   service side.
+
+------------------------------------------------------------
+
+Q: What does Netlify actually do for the app?
+A: Three things. It serves the compiled React app from a
+   global CDN so it loads quickly regardless of location.
+   It runs the serverless AI function as an isolated
+   server-side process. And it watches the GitHub repo —
+   every push to the main branch triggers an automatic
+   rebuild and redeploy, so the live site always reflects
+   the latest code without any manual steps.
+
+------------------------------------------------------------
+
+Q: Why does Google sign-in require setup in Google Cloud?
+A: Google requires any third-party app that uses their
+   authentication to register as an OAuth 2.0 client in
+   the Google Cloud Console. That registration produces a
+   Client ID and Client Secret. I entered those credentials
+   into Supabase's auth settings and specified the exact
+   redirect URI Supabase uses after login. All three values
+   have to match precisely — if any one is wrong or missing,
+   the Google sign-in flow fails entirely.
+
+------------------------------------------------------------
+
+Q: What happens if one of the API keys needs to be rotated?
+A: I update it in Netlify's environment variable settings
+   through their dashboard. The next deployment — which
+   happens automatically on the next git push — picks up
+   the new value. No code changes, no commits, nothing in
+   the repository changes.
+
+------------------------------------------------------------
+
+Q: Could someone abuse the AI feature and run up a large
+   bill?
+A: Two things constrain that. Each response has a hard
+   token cap of 200 to 300 tokens, so no individual call
+   can be costly. And since the key is server-side only,
+   it can't be extracted and used outside the app. The
+   logical next step for a production system would be
+   per-user rate limiting at the function level, but for
+   a class project the token cap provides reasonable
+   protection.
+
+============================================================
