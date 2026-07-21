@@ -10,15 +10,7 @@ We've already got a working prototype live — matching, messaging, and scheduli
 
 ---
 
-## What Changed and Why
 
-**Original opening kept.** "Finding a tennis partner shouldn't be harder than finding a match on the court" is a strong hook — the pun works and it sets up the problem cleanly.
-
-**Middle sentence tightened for spoken delivery.** The original "group chats, Facebook groups, or just hoping to run into someone" reads fine on paper but stumbles when spoken. Consolidated to two channels plus "dumb luck at the club" — more memorable, easier to say.
-
-**Mechanism tied back to the pain point.** Instead of listing "skill, availability, and location" as flat features, they're framed as what a group chat can't do. Makes the differentiator explicit.
-
-**New closing line added.** The original ended on a tagline ("less time searching, more time playing") — nice, but leaves nothing to point to. Since there's a live Netlify deployment with working auth, Discover, Courts, Messages, Calendar, and Profile tabs, closing with proof of a working prototype separates this from concept pitches.
 
 **Pacing.** Revised version runs roughly 30–35 seconds spoken aloud — appropriate for a true elevator pitch.
 
