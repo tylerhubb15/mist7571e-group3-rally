@@ -19,9 +19,6 @@ The core goal of this app is to allow users to input their skill level and their
 - Match history tracking and result logging
 - AI-generated coaching insights for pre-match preparation
 
-# How to Use & Local Setup Instruction
-
-
 # Component Hierarchy
 
 The application is organized around a main app shell with focused feature modules:
