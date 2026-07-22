@@ -269,6 +269,24 @@ create index if not exists messages_convo_idx
                      greatest(sender_id::text, recipient_id::text),
                      created_at);
 
+-- messages.subscribe() in services.js opens a Supabase Realtime channel
+-- expecting live INSERT events on this table — but enabling RLS on a
+-- table (above) doesn't also stream its changes; that's a separate,
+-- explicit opt-in via Postgres's own logical-replication publication
+-- mechanism, which Supabase exposes as `supabase_realtime`. Without
+-- this, the subscription connects successfully and just never receives
+-- anything, so new messages only ever show up on the next full refetch
+-- (e.g. a manual page refresh) instead of appearing live.
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'messages'
+  ) then
+    alter publication supabase_realtime add table public.messages;
+  end if;
+end $$;
+
 -- ─────────────────────────────  TRIGGERS  ────────────────────────
 -- Auto-create a profile row when a new user signs up via Supabase Auth
 create or replace function public.handle_new_user()
