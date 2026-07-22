@@ -3,6 +3,8 @@
 MIST 7571E Group Project · Group 3
 Melanie Burlew · Matt Holliday · Tyler Hubbard · Guillermo Ledezma · Tearra Perkins · Tabatha Renfroe
 
+**Live app:** https://rally-team3-mist7571e.netlify.app
+
 Rally is a full-stack web application designed to help recreational tennis players discover compatible partners, coordinate matches, and prepare for play with AI-assisted guidance. Built as a collaborative project for a graduate-level software development course, the app combines modern frontend development, cloud-based data services, and lightweight AI integration into a polished user experience.
 
 # Project Description:
@@ -103,4 +105,4 @@ npx netlify dev
 
 ```bash
 npm run build
-
+```
