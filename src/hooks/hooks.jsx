@@ -169,7 +169,7 @@ export function useNearbyPlayers(lat, lng) {
   return useQuery({
     queryKey: ["nearbyPlayers", lat?.toFixed(4), lng?.toFixed(4)],
     queryFn: () => matching.nearbyPlayers(lat, lng),
-    enabled: lat != null && lng != null,
+    enabled: lat !== null && lng !== null,
     staleTime: 1000 * 60,
   });
 }
